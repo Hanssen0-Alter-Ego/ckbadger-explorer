@@ -809,3 +809,10 @@ main .shadow-glow, main .shadow-glow-jade, main .shadow-glow-gold { box-shadow: 
 .instrument-tab[data-active="true"] { border-color: var(--color-interactive); background: rgb(91 206 250 / .1); }
 #main-content { background-image: linear-gradient(rgb(91 206 250 / .025) 1px, transparent 1px), linear-gradient(90deg, rgb(91 206 250 / .025) 1px, transparent 1px); background-size: 32px 32px; }
 @media (prefers-reduced-motion: reduce) { [data-testid="latest-activities-content"] > div { animation: none !important; } }
+
+/* Identity text responds as a whole; byte inspector selection remains independent. */
+a:hover [data-identity-hex], a:focus-visible [data-identity-hex] { color: var(--color-interactive-hover); }
+/* Compact header search belongs to the header surface, not a recessed slab. */
+header .instrument-search input { background: transparent; }
+header .instrument-search input:focus,
+header .instrument-search input[aria-expanded="true"] { background: rgb(91 206 250 / .04); border-color: var(--color-interactive); }

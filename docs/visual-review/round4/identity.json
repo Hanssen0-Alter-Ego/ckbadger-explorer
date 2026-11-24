@@ -1,0 +1,20 @@
+[
+  {
+    "width": 390,
+    "identity": {
+      "color": "rgb(128, 221, 255)",
+      "children": [
+        "rgb(128, 221, 255)"
+      ]
+    }
+  },
+  {
+    "width": 1440,
+    "identity": {
+      "color": "rgb(128, 221, 255)",
+      "children": [
+        "rgb(128, 221, 255)"
+      ]
+    }
+  }
+]

@@ -53,3 +53,12 @@ describe('HexDisplay', () => {
     });
   });
 });
+
+it('identity text has no per-character hover targets', () => {
+ const {container}=render(<HexDisplay value="0xabcdef1234567890abcdef1234567890" copyable={false}/>);
+ expect(container.querySelector('.hex-char')).toBeNull();
+ const identity=container.querySelector('[data-identity-hex]')!;
+ fireEvent.mouseEnter(identity);
+ expect(identity.textContent).toBe('0xabcdef1234...34567890');
+ expect(identity.querySelectorAll('[style]')).toHaveLength(0);
+});

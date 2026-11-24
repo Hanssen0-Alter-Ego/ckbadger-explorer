@@ -1,0 +1,16 @@
+[
+  {
+    "width": 390,
+    "idle": "rgba(0, 0, 0, 0)",
+    "background": "rgba(91, 206, 250, 0.04)",
+    "border": "rgb(91, 206, 250)",
+    "route": "http://127.0.0.1:8774/ckbadger-explorer/mainnet/blocks/21100374"
+  },
+  {
+    "width": 1440,
+    "idle": "rgba(0, 0, 0, 0)",
+    "background": "rgba(91, 206, 250, 0.04)",
+    "border": "rgb(91, 206, 250)",
+    "route": "http://127.0.0.1:8774/ckbadger-explorer/mainnet/blocks/21100374"
+  }
+]

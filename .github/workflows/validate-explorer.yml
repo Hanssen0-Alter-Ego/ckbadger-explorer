@@ -36,10 +36,15 @@ jobs:
           __tests__/components/not-found-page.test.tsx __tests__/components/block-detail-error.test.tsx
           __tests__/components/site-footer.test.tsx __tests__/components/activities-stream-explorer.test.tsx
           __tests__/pages/inventory.test.tsx __tests__/pages/block-detail.test.tsx
+          __tests__/components/mini-stats-cards.test.tsx __tests__/components/hex-display.test.tsx
       - name: Build and verify the Next.js static export
         run: |
           corepack pnpm@9.15.0 --dir frontend build
           node frontend/scripts/verify-pages.mjs
+      - name: Install Chromium for deterministic browser regression
+        run: corepack pnpm@9.15.0 --dir frontend exec playwright install --with-deps chromium
+      - name: Verify populated home scroll containment offline
+        run: node frontend/scripts/verify-home-ci.cjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: explorer-static-verification

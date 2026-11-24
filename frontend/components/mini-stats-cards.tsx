@@ -17,7 +17,7 @@ function formatNumber(value: number): string {
 
 interface BarChartProps {
   data: TxStatsDataPoint[];
-  color: 'green' | 'gold';
+  color: 'cyan' | 'ice';
   height?: number;
 }
 
@@ -33,12 +33,12 @@ function BarChart({ data, color, height = 48 }: BarChartProps) {
   }
 
   const maxValue = Math.max(...data.map((d) => d.value), 1);
-  const barColor = color === 'green' ? 'bg-text/80' : 'bg-text-dim/60';
-  const barColorHover = color === 'green' ? 'bg-jade' : 'bg-text-bright';
+  const barColor = color === 'cyan' ? 'bg-interactive/85' : 'bg-[#a8dcec]/85';
+  const barColorHover = color === 'cyan' ? 'bg-interactive-hover' : 'bg-[#d1f1fa]';
 
   return (
     <div className="relative" style={{ height }}>
-      <div className="flex h-full items-end gap-[2px]">
+      <div className="flex h-full items-end gap-[2px]" data-mini-bars>
         {data.map((point, i) => {
           const barHeight = (point.value / maxValue) * 100;
           const isHovered = hoveredIndex === i;
@@ -52,10 +52,11 @@ function BarChart({ data, color, height = 48 }: BarChartProps) {
             >
               <div
                 className={cn(
-                  'absolute bottom-0 w-full rounded-t-sm transition-all duration-150',
+                  'absolute bottom-0 w-full transition-colors duration-150',
                   isHovered ? barColorHover : barColor,
-                  isHovered ? 'opacity-100' : 'opacity-70'
+                  'border-t border-white/25'
                 )}
+                data-mini-bar
                 style={{ height: `${Math.max(barHeight, 2)}%` }}
               />
               {isHovered && (
@@ -64,7 +65,7 @@ function BarChart({ data, color, height = 48 }: BarChartProps) {
                   <div
                     className={cn(
                       'font-mono font-bold',
-                      color === 'green' ? 'text-text-bright' : 'text-text-bright'
+                      color === 'cyan' ? 'text-text-bright' : 'text-text-bright'
                     )}
                   >
                     {formatNumber(point.value)}
@@ -83,23 +84,28 @@ interface TxStatWidgetProps {
   label: string;
   value: number;
   data: TxStatsDataPoint[];
-  color: 'green' | 'gold';
+  color: 'cyan' | 'ice';
+  history: string;
 }
 
-function TxStatWidget({ label, value, data, color }: TxStatWidgetProps) {
+function TxStatWidget({ label, value, data, color, history }: TxStatWidgetProps) {
   return (
     <div className="flex flex-col gap-2">
-      <div data-testid="tx-stat-heading" className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-3">
+      <div
+        data-testid="tx-stat-heading"
+        className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-3"
+      >
         <span className="text-text-dim font-mono text-xs uppercase tracking-wider">{label}</span>
         <span
           className={cn(
             'shrink-0 whitespace-nowrap font-mono text-xl font-bold tabular-nums',
-            color === 'green' ? 'text-text-bright' : 'text-text-bright'
+            color === 'cyan' ? 'text-text-bright' : 'text-text-bright'
           )}
         >
           {formatNumber(value)}
         </span>
       </div>
+      <p className="text-text-dim font-mono text-[10px]"><span className="block">{history}</span><span className="block">Oldest → newest</span></p>
       <BarChart data={data} color={color} height={48} />
       <div className="text-text-dim flex justify-between font-mono text-[10px]">
         <span>{data.length > 0 ? data[0].label : ''}</span>
@@ -119,25 +125,28 @@ export function MiniStatsCards({ className }: MiniStatsCardsProps) {
 
   const hourlyData = txStats?.hourlyData ?? [];
   const dailyData = txStats?.dailyData ?? [];
-  const txsLastHour = txStats?.currentHour ?? 0;
-  const txsLast24Hours = txStats?.currentDay ?? 0;
+  const txsThisHour = txStats?.currentHour ?? 0;
+  const txsToday = txStats?.currentDay ?? 0;
 
   return (
     <div
+      data-testid="tx-mini-charts"
       className={cn('border-base-border bg-base-surface h-full rounded-none border p-4', className)}
     >
       <div className="grid h-full grid-cols-2 gap-6">
         <TxStatWidget
-          label="TXs Last 60 Mins"
-          value={txsLastHour}
+          label="TXs this hour"
+          history="Hourly · UTC"
+          value={txsThisHour}
           data={hourlyData}
-          color="green"
+          color="cyan"
         />
         <TxStatWidget
-          label="TXs Last 24 Hours"
-          value={txsLast24Hours}
+          label="TXs today"
+          history="Daily · UTC+8"
+          value={txsToday}
           data={dailyData}
-          color="gold"
+          color="ice"
         />
       </div>
     </div>
