@@ -150,7 +150,7 @@ function ChartCard({
 }: ChartCardProps) {
   const content = (
     <div
-      className={`border-base-border bg-base-surface rounded-lg border p-4 ${href ? 'hover:border-base-border cursor-pointer transition-colors' : ''}`}
+      className={`border-base-border bg-base-surface rounded-none border p-4 ${href ? 'hover:border-base-border cursor-pointer transition-colors' : ''}`}
     >
       <div className="mb-3 flex items-start justify-between">
         <div>

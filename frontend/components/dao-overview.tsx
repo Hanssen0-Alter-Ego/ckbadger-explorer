@@ -50,7 +50,7 @@ export function DaoOverview() {
 
   return (
     <Link href="/dao" className="block h-full">
-      <div className="border-base-border bg-base-surface hover:border-jade/30 flex h-full flex-col rounded-lg border px-4 py-3 transition-colors">
+      <div className="border-base-border bg-base-surface hover:border-jade/30 flex h-full flex-col rounded-none border px-4 py-3 transition-colors">
         {/* Header row */}
         <div className="mb-1.5 flex items-baseline justify-between">
           <div className="text-text-dim font-mono text-[10px] uppercase tracking-wider">

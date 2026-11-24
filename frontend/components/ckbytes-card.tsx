@@ -45,11 +45,11 @@ export function CKBytesCard({ stats }: CKBytesCardProps) {
 
   if (!stats?.circulatingSupply || !stats?.knowledgeSize || !stats?.daoLocked) {
     return (
-      <div className="rounded-lg p-4">
+      <div className="rounded-none p-4">
         <div className="text-text-dim mb-3 font-mono text-xs uppercase tracking-wider">
           CKBytes Circulation
         </div>
-        <div className="bg-base-elevated h-6 w-full animate-pulse rounded-full" />
+        <div className="bg-base-elevated h-6 w-full animate-pulse rounded-none" />
       </div>
     );
   }
@@ -69,7 +69,7 @@ export function CKBytesCard({ stats }: CKBytesCardProps) {
 
   if (free < 0) {
     return (
-      <div className="rounded-lg p-4">
+      <div className="rounded-none p-4">
         <div className="text-text-dim mb-3 font-mono text-xs uppercase tracking-wider">
           CKBytes Circulation
         </div>
@@ -113,7 +113,7 @@ export function CKBytesCard({ stats }: CKBytesCardProps) {
 
   return (
     <Link href="/charts/total-supply" className="block">
-      <div className="rounded-lg p-4">
+      <div className="rounded-none p-4">
         <div className="text-text-dim mb-3 font-mono text-xs uppercase tracking-wider">
           CKBytes Circulation{' '}
           <span className="text-text-bright font-bold">
@@ -132,7 +132,7 @@ export function CKBytesCard({ stats }: CKBytesCardProps) {
         </div>
 
         {/* Stacked progress bar */}
-        <div className="flex h-5 w-full overflow-hidden rounded-full">
+        <div className="flex h-5 w-full overflow-hidden rounded-none">
           {segments.map((seg, i) => (
             <div
               key={seg.label}
@@ -155,7 +155,7 @@ export function CKBytesCard({ stats }: CKBytesCardProps) {
               onMouseLeave={() => setHoveredIndex(null)}
             >
               <span
-                className={`${hoveredIndex === i ? seg.hoverColor : seg.color} inline-block h-2.5 w-2.5 rounded-full transition-all duration-200`}
+                className={`${hoveredIndex === i ? seg.hoverColor : seg.color} inline-block h-2.5 w-2.5 rounded-none transition-all duration-200`}
               />
               <span className="text-text-dim font-mono text-xs">{seg.label}</span>
               <span className={`${seg.textColor} font-mono text-xs font-bold tabular-nums`}>

@@ -43,7 +43,7 @@ interface TabsListProps {
 }
 
 export function TabsList({ children, className }: TabsListProps) {
-  return <div className={cn('border-base-border flex border-b', className)}>{children}</div>;
+  return <div className={cn('instrument-tabs border-base-border flex border-b', className)}>{children}</div>;
 }
 
 interface TabsTriggerProps {
@@ -60,9 +60,10 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
 
   return (
     <button
+      data-active={isActive}
       onClick={() => context.onChange(value)}
       className={cn(
-        'px-4 py-2 font-mono text-sm font-medium transition',
+        'instrument-tab px-4 py-2 font-mono text-sm font-medium transition',
         isActive ? 'border-jade text-jade border-b-2' : 'text-text-dim hover:text-text',
         className
       )}

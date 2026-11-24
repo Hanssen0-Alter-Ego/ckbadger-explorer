@@ -36,7 +36,7 @@ export function PageHeader({
   };
 
   return (
-    <div className={cn('mb-4', className)}>
+    <div className={cn('instrument-page-heading mb-4', className)}>
       <div className="flex flex-wrap items-start justify-between gap-4 sm:items-center">
         <div className="flex min-w-0 items-center gap-3">
           {navigation?.prev && (
@@ -51,7 +51,7 @@ export function PageHeader({
 
           <div>
             <div className="flex min-w-0 flex-wrap items-center gap-3">
-              <h1 className="text-text-bright break-words font-mono text-2xl font-bold">{title}</h1>
+              <h1 className="text-text-bright break-words font-display text-2xl font-bold">{title}</h1>
               {badge}
             </div>
             {subtitle && <div className="text-text-dim mt-1 break-words text-sm">{subtitle}</div>}

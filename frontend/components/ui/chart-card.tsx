@@ -26,13 +26,13 @@ export function ChartCard({
   const content = (
     <div
       className={cn(
-        'border-base-border bg-base-surface overflow-hidden rounded-lg border',
-        'transition-all duration-200',
+        'instrument-panel border-base-border bg-base-surface overflow-hidden border',
+        'transition-colors duration-200',
         href && 'hover:bg-base-elevated hover:border-base-border cursor-pointer',
         className
       )}
     >
-      <div className="from-base-elevated/50 border-base-border flex items-center justify-between border-b bg-gradient-to-r to-transparent px-3 py-2">
+      <div className="instrument-panel-heading border-base-border flex items-center justify-between border-b px-3 py-2">
         <h3 className="text-text font-mono text-sm uppercase tracking-wide">{title}</h3>
         {href && (
           <span className="text-jade font-mono text-xs opacity-0 transition-opacity group-hover:opacity-100">

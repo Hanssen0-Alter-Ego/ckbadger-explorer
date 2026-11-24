@@ -124,7 +124,7 @@ export function MiniStatsCards({ className }: MiniStatsCardsProps) {
 
   return (
     <div
-      className={cn('border-base-border bg-base-surface h-full rounded-lg border p-4', className)}
+      className={cn('border-base-border bg-base-surface h-full rounded-none border p-4', className)}
     >
       <div className="grid h-full grid-cols-2 gap-6">
         <TxStatWidget

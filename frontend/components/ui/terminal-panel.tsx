@@ -41,7 +41,7 @@ export function TerminalPanel({
     <div
       {...props}
       className={cn(
-        'neon-edge-top relative overflow-hidden rounded-lg border transition-shadow duration-300',
+        'instrument-panel relative border',
         variantClasses[variant],
         glow && 'hover:shadow-glow',
         className
@@ -53,16 +53,6 @@ export function TerminalPanel({
         } as CSSProperties
       }
     >
-      <div className="pointer-events-none absolute inset-0">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 2px)',
-          }}
-        />
-      </div>
-
       <div className="relative z-10">{children}</div>
     </div>
   );
@@ -99,7 +89,7 @@ export function TerminalPanelHeader({
       className={cn(
         'flex flex-wrap items-start justify-between gap-3 px-3 py-2 sm:items-center',
         'border-base-border border-b',
-        'from-base-elevated/50 bg-gradient-to-r to-transparent',
+        'instrument-panel-heading',
         className
       )}
     >

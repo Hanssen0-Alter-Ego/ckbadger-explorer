@@ -179,7 +179,7 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
   const showShortcutHints = isHome || isCompact;
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('instrument-search relative', className)}>
       <form onSubmit={handleSearch}>
         <div
           className={cn(

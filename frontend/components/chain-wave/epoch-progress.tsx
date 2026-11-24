@@ -24,7 +24,7 @@ export function EpochProgress({
   const epochEndBlock = epochStartBlock + epochLength - 1;
 
   return (
-    <div className="border-base-border bg-base-surface h-full overflow-hidden rounded-lg border p-4">
+    <div className="border-base-border bg-base-surface h-full overflow-hidden rounded-none border p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-baseline gap-3">
           <span className="text-text-dim font-mono text-xs uppercase tracking-wider">Epoch</span>
@@ -45,10 +45,10 @@ export function EpochProgress({
         )}
       </div>
 
-      <div className="bg-base-elevated relative h-3 overflow-hidden rounded-full sm:h-4">
+      <div className="bg-base-elevated relative h-3 overflow-hidden rounded-none sm:h-4">
         <div
           className={cn(
-            'absolute inset-y-0 left-0 rounded-full transition-all duration-1000',
+            'absolute inset-y-0 left-0 rounded-none transition-all duration-1000',
             progress < 25
               ? 'from-gold-dim to-gold-dim bg-gradient-to-r'
               : progress < 50
@@ -60,7 +60,7 @@ export function EpochProgress({
           style={{ width: `${progressClamped}%` }}
         />
         <div
-          className="absolute top-1/2 h-2.5 w-0.5 -translate-y-1/2 rounded-full bg-white/80 shadow-sm sm:h-3"
+          className="absolute top-1/2 h-2.5 w-0.5 -translate-y-1/2 rounded-none bg-white/80 shadow-sm sm:h-3"
           style={{ left: `${progressClamped}%`, transform: `translateX(-50%) translateY(-50%)` }}
         />
       </div>

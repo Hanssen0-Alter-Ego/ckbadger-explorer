@@ -707,3 +707,69 @@ body,
     scroll-behavior: auto !important;
   }
 }
+
+/* CCC App primitives, adapted to the existing explorer layout.
+   Reference: packages/app/src/app/styles/{tokens,module-controls,workspace,shell}.css */
+:root {
+  --surface-recess: #070a0c;
+  --text-body: #b0bdc5;
+  --text-muted: #89979f;
+  --mechanical-ease: cubic-bezier(.22, 1, .36, 1);
+  --font-display: Arial, Helvetica, sans-serif;
+  --font-mono: 'Courier New', ui-monospace, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not(.dark) {
+    color-scheme: light;
+    --background: #f3f6f7; --foreground: #16232b;
+    --color-surface: #ffffff; --color-elevated: #e7eef1;
+    --surface-recess: #eaf0f3; --color-border: #91a5af;
+    --color-border-subtle: #cad6dc; --text-body: #324b58;
+    --text-muted: #4c6572; --color-interactive: #006c95;
+    --color-interactive-hover: #004d6b; --color-emphasis: #006c95;
+  }
+}
+body, #root .min-h-screen.bg-base-bg {
+  background-image: linear-gradient(to right, color-mix(in srgb, var(--color-border) 12%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-border) 12%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+.instrument-panel {
+  border-radius: 0;
+  border-color: var(--color-border);
+  box-shadow: none;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.instrument-panel::before {
+  content: ''; position: absolute; top: -1px; left: -1px; width: 18px; height: 3px;
+  background: var(--color-interactive); pointer-events: none;
+}
+.instrument-panel-heading {
+  background: var(--surface-recess); font-weight: 700; letter-spacing: .1em;
+}
+.instrument-page-heading { border-top: 1px solid var(--foreground); padding-top: 14px; }
+.instrument-page-heading h1 { letter-spacing: -.035em; }
+.instrument-tabs { gap: 4px; }
+.instrument-tab { border-radius: 0; transition: background-color 160ms ease, color 160ms ease; }
+.instrument-tab[data-active="true"] { background: var(--color-elevated); box-shadow: inset 0 2px var(--color-interactive); }
+.instrument-search input { border-radius: 0 !important; box-shadow: none !important; background: var(--surface-recess); border-color: var(--color-border); }
+.instrument-search input:focus { border-color: var(--color-interactive); }
+.instrument-search [data-testid="home-search-focus-glow"] { animation: none; border-radius: 0; }
+.instrument-search [data-testid="home-search-focus-border-scan"] { display: none; }
+main :where(button, select), dialog :where(button, input) { border-radius: 0; }
+main :where(button, select, a), header :where(button, a) { transition-duration: 160ms; transition-timing-function: var(--mechanical-ease); }
+main button:active:not(:disabled) { transform: translateY(1px); }
+main :where(thead, [role="columnheader"]) { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+main tbody tr { transition: background-color 160ms ease; }
+main tbody tr:hover { background: var(--color-elevated); }
+main .rounded-lg.border, main .rounded-xl.border { border-radius: 0; box-shadow: none; }
+main :where(h2,h3) { letter-spacing: .02em; }
+.neon-flicker, .logo-neon-breathe, .animate-terminal-glow-pulse { animation: none !important; }
+dialog[open] { border-radius: 0; border: 1px solid var(--color-border); animation: instrument-enter 200ms var(--mechanical-ease); }
+@keyframes instrument-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  main button:active:not(:disabled) { transform: none; }
+}
+
+.instrument-panel { position: relative; }

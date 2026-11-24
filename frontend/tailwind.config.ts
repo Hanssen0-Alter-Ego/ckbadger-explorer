@@ -25,30 +25,30 @@ export default {
       colors: {
         // Explorer surfaces inspired by the CCC App console. Keep chart categories distinct.
         base: {
-          void: '#070a0c',
-          bg: '#090d10',
-          surface: '#11181c',
-          elevated: '#182228',
-          border: '#344149',
-          'border-subtle': '#28343a',
+          void: 'var(--surface-recess)',
+          bg: 'var(--background)',
+          surface: 'var(--color-surface)',
+          elevated: 'var(--color-elevated)',
+          border: 'var(--color-border)',
+          'border-subtle': 'var(--color-border-subtle)',
         },
         text: {
-          bright: '#e6eef2',
-          DEFAULT: '#b0bdc5',
-          dim: '#95a2aa',
-          ghost: '#85969f',
+          bright: 'var(--foreground)',
+          DEFAULT: 'var(--text-body)',
+          dim: 'var(--text-muted)',
+          ghost: 'var(--text-muted)',
         },
         interactive: {
-          DEFAULT: '#5bcefa',
-          hover: '#80ddff',
+          DEFAULT: 'var(--color-interactive)',
+          hover: 'var(--color-interactive-hover)',
           muted: '#5bcefa20',
           dim: '#4aa8d0',
         },
         emphasis: {
-          DEFAULT: '#5bcefa',
+          DEFAULT: 'var(--color-interactive)',
           dim: '#d0a840',
           glow: '#5bcefa40',
-          bright: '#80ddff',
+          bright: 'var(--color-interactive-hover)',
         },
         positive: {
           DEFAULT: '#2edba3',
@@ -66,13 +66,13 @@ export default {
           bright: '#f8d878',
         },
         info: {
-          DEFAULT: '#5bcefa',
+          DEFAULT: 'var(--color-interactive)',
           dim: '#4aa8d0',
           bright: '#88ddf8',
         },
         // Chinese traditional named colors
         jade: {
-          DEFAULT: '#5bcefa',
+          DEFAULT: 'var(--color-interactive)',
           dim: '#50b2d6',
         },
         rouge: {
@@ -80,7 +80,7 @@ export default {
           dim: '#c04048',
         },
         aqua: {
-          DEFAULT: '#5bcefa',
+          DEFAULT: 'var(--color-interactive)',
           dim: '#4aa8d0',
         },
         gold: {
@@ -103,7 +103,7 @@ export default {
         // Chart accent palette (12 colors)
         'accent-1': '#2edba3',
         'accent-2': '#e8555a',
-        'accent-3': '#5bcefa',
+        'accent-3': 'var(--color-interactive)',
         'accent-4': '#f2c55c',
         'accent-5': '#b8a9e8',
         'accent-6': '#d4883a',
