@@ -1,0 +1,30 @@
+[
+  {
+    "width": 390,
+    "colors": [
+      "rgba(91, 206, 250, 0.85)",
+      "rgba(168, 220, 236, 0.85)"
+    ],
+    "identity": {
+      "color": "rgb(128, 221, 255)",
+      "children": [
+        "rgb(128, 221, 255)"
+      ]
+    },
+    "searchKeyboard": true
+  },
+  {
+    "width": 1440,
+    "colors": [
+      "rgba(91, 206, 250, 0.85)",
+      "rgba(168, 220, 236, 0.85)"
+    ],
+    "identity": {
+      "color": "rgb(128, 221, 255)",
+      "children": [
+        "rgb(128, 221, 255)"
+      ]
+    },
+    "searchKeyboard": true
+  }
+]
