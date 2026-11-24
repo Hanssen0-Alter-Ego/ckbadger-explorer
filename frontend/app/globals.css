@@ -3,24 +3,66 @@
 @tailwind utilities;
 
 :root {
-  --foreground: #dee2ec;
-  --background: #08090e;
-  --color-surface: #10131c;
-  --color-elevated: #161a25;
-  --color-border: #222840;
-  --color-border-subtle: #1a1f30;
-  --color-emphasis: #2edba3;
-  --color-emphasis-dim: #1fb88a;
-  --color-interactive: #68ccf0;
-  --color-interactive-hover: #2edba3;
+  color-scheme: dark;
+  --foreground: #e6eef2;
+  --background: #090d10;
+  --color-surface: #11181c;
+  --color-elevated: #182228;
+  --color-border: #344149;
+  --color-border-subtle: #28343a;
+  --color-emphasis: #5bcefa;
+  --color-emphasis-dim: #50b2d6;
+  --color-interactive: #5bcefa;
+  --color-interactive-hover: #80ddff;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', 'Roboto Mono', ui-monospace, monospace;
-  --font-display: 'JetBrains Mono', 'SFMono-Regular', 'Roboto Mono', ui-monospace, monospace;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+  font-family: var(--font-display);
   min-height: 100vh;
+}
+
+body,
+#root .min-h-screen.bg-base-bg {
+  background-image: radial-gradient(circle, rgb(153 175 185 / 0.11) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+::selection {
+  color: var(--background);
+  background: var(--color-emphasis);
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-emphasis);
+  outline-offset: 3px;
+}
+
+.explorer-console {
+  box-shadow: inset 0 1px rgb(230 238 242 / 0.12);
+}
+
+.explorer-brand-mark {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--color-emphasis);
+}
+
+.explorer-brand-mark span {
+  background: var(--color-emphasis);
+}
+
+.explorer-brand-mark span:nth-child(2) {
+  opacity: 0.5;
 }
 
 @layer utilities {
@@ -42,13 +84,11 @@ body {
   }
 
   .terminal-text {
-    color: #2edba3;
-    text-shadow: 0 0 6px #2edba340;
+    color: var(--color-emphasis);
   }
 
   .terminal-text-dim {
-    color: #1fb88a;
-    text-shadow: 0 0 4px #1fb88a30;
+    color: var(--color-emphasis-dim);
   }
 
   .crt-screen {
@@ -435,30 +475,11 @@ body {
   }
 }
 
-/* Midnight CRT effects */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 2px,
-    rgba(0, 0, 0, 0.08) 2px,
-    rgba(0, 0, 0, 0.08) 4px
-  );
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.35;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
-  pointer-events: none;
-  z-index: 9998;
+/* Keep legacy layout decorations available without obscuring text or controls. */
+.scanline-overlay,
+.crt-scanlines,
+.crt-vignette {
+  display: none;
 }
 
 /* === Atmosphere: Full Immersion (no particles) === */

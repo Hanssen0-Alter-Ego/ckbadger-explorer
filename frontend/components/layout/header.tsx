@@ -5,7 +5,6 @@ import { usePathname } from '@/src/navigation';
 import { useState } from 'react';
 import { CommandPalette } from '@/components/command-palette';
 import { SearchBar } from '@/components/search-bar';
-import { Logo } from '@/components/layout/logo';
 import { NetworkSwitcher } from '@/components/layout/network-switcher';
 import {
   NAVBAR_DROPDOWN_ITEM_ACTIVE_CLASS,
@@ -78,18 +77,30 @@ export function Header() {
   })();
 
   return (
-    <header className="border-base-border bg-base-bg/95 sticky top-0 z-40 mb-4 overflow-visible border-b backdrop-blur-sm">
-      <div className="container relative mx-auto flex h-[56px] items-center gap-4 px-4 md:gap-0">
-        <div className="hidden md:block">
-          <Logo />
-        </div>
-        <div
-          data-testid="desktop-header-start-column"
-          aria-hidden="true"
-          className={DESKTOP_START_COLUMN}
-        />
+    <header className="explorer-console border-base-border bg-base-bg/95 sticky top-0 z-40 mb-4 overflow-visible border-b backdrop-blur-sm">
+      <div className="container relative mx-auto flex min-h-[56px] items-center gap-2 px-4 md:gap-3">
+        <Link
+          href="/"
+          aria-label="CKBadger Home"
+          className="text-text-bright hover:text-interactive flex min-h-11 shrink-0 items-center gap-2 rounded-sm transition-colors"
+        >
+          <span className="explorer-brand-mark" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="hidden sm:block">
+            <span className="block font-display text-sm font-semibold leading-tight">CKBadger</span>
+            <span className="text-text-dim block font-mono text-[9px] uppercase tracking-[0.14em]">
+              CKB Explorer
+            </span>
+          </span>
+        </Link>
 
-        <nav className="relative z-10 hidden shrink-0 items-center gap-0.5 md:flex">
+        <nav
+          aria-label="Primary"
+          className="relative z-10 hidden shrink-0 items-center gap-0.5 md:flex"
+        >
           <NetworkSwitcher />
           {navItems.map((item) =>
             isDropdown(item) ? (
@@ -157,8 +168,10 @@ export function Header() {
           <button
             type="button"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-text-dim hover:text-interactive hover:bg-base-elevated flex h-10 w-10 items-center justify-center rounded-lg transition-colors"
+            className="text-text-dim hover:text-interactive hover:bg-base-elevated flex h-11 w-11 items-center justify-center rounded-lg transition-colors"
             aria-label="Toggle menu"
+            aria-expanded={isMenuOpen}
+            aria-controls="explorer-mobile-navigation"
           >
             {isMenuOpen ? (
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -181,7 +194,7 @@ export function Header() {
             )}
           </button>
           {activeLabel && (
-            <span className="text-jade font-mono text-xs uppercase tracking-[0.12em]">
+            <span className="text-jade hidden font-mono text-xs uppercase tracking-[0.12em] min-[430px]:inline">
               {activeLabel}
             </span>
           )}
@@ -195,7 +208,7 @@ export function Header() {
       </div>
 
       <div
-        className={`border-jade/10 overflow-hidden border-t bg-[#060810] transition-all duration-300 ${
+        className={`border-jade/10 overflow-hidden border-t bg-base-void transition-all duration-300 ${
           showStatsBar ? 'h-7 opacity-100' : 'h-0 border-t-0 opacity-0'
         }`}
       >
@@ -211,7 +224,11 @@ export function Header() {
 
       {isMenuOpen && (
         <div className="border-base-border bg-base-bg/95 absolute z-50 w-full border-t shadow-xl backdrop-blur-sm md:hidden">
-          <nav className="container mx-auto px-4 py-4">
+          <nav
+            id="explorer-mobile-navigation"
+            aria-label="Primary"
+            className="container mx-auto px-4 py-4"
+          >
             <div className="flex flex-col gap-1">
               <Link
                 href="/"

@@ -3,6 +3,7 @@
 import { forwardRef, useContext } from 'react';
 import { UNSAFE_LocationContext, UNSAFE_NavigationContext } from 'react-router-dom';
 import { prefixNetwork, resolveActiveNetwork } from '@/lib/active-network';
+import { withAppBase } from '@/lib/app-base';
 
 export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string;
@@ -61,7 +62,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   };
 
   return (
-    <a ref={ref} href={target} {...props} onClick={handleClick}>
+    <a ref={ref} href={withAppBase(target)} {...props} onClick={handleClick}>
       {children}
     </a>
   );

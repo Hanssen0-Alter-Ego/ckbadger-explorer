@@ -1,0 +1,43 @@
+name: Validate Explorer without deployment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PAGES_BASE: /${{ github.event.repository.name }}/
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Resolve and install dependencies on the hosted runner
+        run: corepack pnpm@9.15.0 install --no-frozen-lockfile
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: explorer-pnpm-lock
+          path: pnpm-lock.yaml
+          if-no-files-found: error
+      - name: Test hosting, runtime routing, and network isolation
+        run: corepack pnpm@9.15.0 --dir frontend exec vitest run --maxWorkers=2 --minWorkers=1 __tests__/lib/pages-hosting.test.ts __tests__/lib/active-network.test.ts
+      - name: Build and verify the Next.js static export
+        run: |
+          corepack pnpm@9.15.0 --dir frontend build
+          node frontend/scripts/verify-pages.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: explorer-static-verification
+          path: |
+            frontend/site/out
+            !frontend/site/out/.DS_Store
+          include-hidden-files: true
+          if-no-files-found: error

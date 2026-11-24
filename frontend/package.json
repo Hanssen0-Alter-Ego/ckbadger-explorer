@@ -3,9 +3,8 @@
   "version": "0.8.3",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && node scripts/build-agent.mjs",
-    "start": "vite preview",
+    "dev": "node scripts/prepare-next.mjs && next dev site --webpack",
+    "build": "node scripts/prepare-next.mjs && next build site --webpack && node scripts/build-pages.mjs",
     "lint": "eslint app components hooks lib src",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
@@ -25,7 +24,8 @@
     "react-force-graph-2d": "^1.25.5",
     "react-router-dom": "^7.13.1",
     "tailwind-merge": "^2.6.0",
-    "zustand": "^5.0.2"
+    "zustand": "^5.0.2",
+    "next": "16.4.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

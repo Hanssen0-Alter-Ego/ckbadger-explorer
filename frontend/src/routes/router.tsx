@@ -1,6 +1,6 @@
 import type { ComponentType, ReactElement } from 'react';
 import type { RouteObject } from 'react-router-dom';
-import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { NetworkQueryScope } from '@/components/network-query-scope';
 import { NotFoundPage } from '@/components/not-found-page';
@@ -44,6 +44,19 @@ function NetworkGuard({ children }: { children: ReactElement }): ReactElement {
   const { network } = useParams();
   const location = useLocation();
 
+  if ((network === 'mainnet' || network === 'testnet') && !isKnownNetwork(network)) {
+    return (
+      <main className="container mx-auto px-4 py-16">
+        <h1 className="text-text-bright text-2xl font-semibold">
+          {network === 'testnet' ? 'Testnet' : 'Mainnet'} is not configured
+        </h1>
+        <p className="text-text-dim mt-3">Switch to a network with a configured backend.</p>
+        <Link className="text-interactive mt-4 inline-flex underline" to={`/${resolveDefaultNetwork()}`}>
+          Open the default network
+        </Link>
+      </main>
+    );
+  }
   if (!network || !isKnownNetwork(network)) {
     return (
       <Navigate

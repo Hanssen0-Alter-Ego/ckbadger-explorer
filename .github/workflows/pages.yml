@@ -1,0 +1,53 @@
+name: Deploy Explorer to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Install pinned dependencies
+        run: corepack pnpm@9.15.0 install --frozen-lockfile
+      - name: Test browser host and runtime routing contracts
+        run: corepack pnpm@9.15.0 --dir frontend exec vitest run --maxWorkers=2 --minWorkers=1 __tests__/lib/pages-hosting.test.ts __tests__/lib/active-network.test.ts
+      - name: Build and verify Next.js export
+        env:
+          PAGES_BASE: /${{ github.event.repository.name }}/
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          corepack pnpm@9.15.0 build
+          node frontend/scripts/verify-pages.mjs
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: frontend/site/out
+
+  deploy:
+    if: github.repository == 'Hanssen0-Alter-Ego/ckbadger-explorer'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

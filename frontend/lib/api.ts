@@ -1803,9 +1803,9 @@ interface BlockFeeStats {
   blockNumber: number;
   totalSize: number;
   totalCycles: number;
-  avgFeeRate: number;
-  minFeeRate: number;
-  maxFeeRate: number;
+  avgFeeRate: number | string | null;
+  minFeeRate: number | string | null;
+  maxFeeRate: number | string | null;
   transactionCount: number;
   cyclesPending?: boolean;
 }

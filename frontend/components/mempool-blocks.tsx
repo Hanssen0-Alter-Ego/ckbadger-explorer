@@ -389,7 +389,11 @@ function committedTxToLensItem(tx: Transaction): LensTxItem {
   };
 }
 
-function formatFeeRate(rate: number): string {
+function formatFeeRate(value: number | string | null): string {
+  // Newer backends transport a decimal string or explicitly omit an unknown rate.
+  const rate = typeof value === 'number' ? value
+    : typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value) ? Number(value) : NaN;
+  if (!Number.isFinite(rate) || rate < 0) return '—';
   if (rate < 0.01) return '<0.01';
   if (rate >= 1000) return `${(rate / 1000).toFixed(1)}K`;
   return rate.toFixed(2);

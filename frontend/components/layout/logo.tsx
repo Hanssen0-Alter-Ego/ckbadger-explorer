@@ -1,5 +1,6 @@
 'use client';
 
+import { withAppBase } from '@/lib/app-base';
 import Image from '@/components/ui/image';
 import Link from '@/components/ui/link';
 import { useEffect, useRef } from 'react';
@@ -38,7 +39,7 @@ export function Logo() {
     >
       <Image
         ref={imgRef}
-        src="/ckbadger-logo.webp"
+        src={withAppBase('/ckbadger-logo.webp')}
         alt="CKBadger"
         width={143}
         height={97}

@@ -1,10 +1,20 @@
+export interface CkbadgerNetworkConfig {
+  name: string;
+  /** Full URL of the REST v1 root for this network. */
+  apiBase?: string;
+  /** Complete WebSocket URL for this network. */
+  wsUrl?: string;
+  /** Full network page root for browser redirects to upstream Markdown/RAW. */
+  pageBase?: string;
+}
+
 export interface CkbadgerRuntimeConfig {
   apiBase?: string;
   wsUrl?: string;
   ckbNetwork?: string;
   ckbRpcUrl?: string;
   buildVersion?: string;
-  networks?: { name: string }[];
+  networks?: CkbadgerNetworkConfig[];
   defaultNetwork?: string;
   apiBasePattern?: string;
   wsUrlPattern?: string;
@@ -83,4 +93,11 @@ export function resolveWsUrlPattern(
   config: CkbadgerRuntimeConfig = runtimeConfigFromWindow() ?? {}
 ): string {
   return config.wsUrlPattern?.trim() || `/ws/{network}`;
+}
+
+export function resolveNetworkConfig(
+  network: string,
+  config: CkbadgerRuntimeConfig = runtimeConfigFromWindow() ?? {}
+): CkbadgerNetworkConfig | undefined {
+  return config.networks?.find((entry) => entry.name === network);
 }

@@ -1,28 +1,18 @@
 {
-  "name": "ckbadger",
-  "version": "0.3.1",
+  "name": "ckbadger-explorer",
+  "version": "0.8.3",
   "private": true,
-  "description": "High-performance blockchain explorer for Nervos CKB",
+  "description": "Static CKBadger v0.8.3 explorer frontend adapted for GitHub Pages",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nervosnetwork/ckbadger.git"
+    "url": "https://github.com/Hanssen0-Alter-Ego/ckbadger-explorer.git"
   },
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "scripts": {
-    "dev": "pnpm --filter frontend dev",
-    "build": "pnpm --filter frontend build",
-    "lint": "pnpm --filter frontend lint",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "prepare": "lefthook install",
-    "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f",
-    "fuzz": "npx tsx fuzzing/src/index.ts",
-    "fuzz:api": "npx tsx fuzzing/src/index.ts --mode=api",
-    "fuzz:page": "npx tsx fuzzing/src/index.ts --mode=page",
-    "fuzz:quick": "npx tsx fuzzing/src/index.ts -b 5 -t 5 -a 3",
-    "fuzz:visual": "npx playwright test --config=fuzzing/playwright/playwright.config.ts"
+    "dev": "pnpm --dir frontend dev",
+    "build": "pnpm --dir frontend build",
+    "test": "pnpm --dir frontend exec vitest run",
+    "type-check": "pnpm --dir frontend type-check"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

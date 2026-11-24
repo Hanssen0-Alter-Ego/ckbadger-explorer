@@ -7,13 +7,14 @@ import {
   useParams as useRouteParams,
 } from 'react-router-dom';
 import { isKnownNetwork, prefixNetwork, resolveActiveNetwork } from '@/lib/active-network';
+import { stripAppBase, withAppBase } from '@/lib/app-base';
 
 type NavigateOptions = {
   scroll?: boolean;
 };
 
 function getWindowPathname(): string {
-  return typeof window === 'undefined' ? '/' : window.location.pathname;
+  return typeof window === 'undefined' ? '/' : stripAppBase(window.location.pathname);
 }
 
 function getWindowSearch(): string {
@@ -87,11 +88,11 @@ export function useRouter() {
       }
 
       if (replace) {
-        window.location.replace(target);
+        window.location.replace(withAppBase(target));
         return;
       }
 
-      window.location.assign(target);
+      window.location.assign(withAppBase(target));
     },
     [navigationContext, routerPathname]
   );
@@ -108,7 +109,7 @@ export function useRouter() {
 
 export function redirect(href: string): never {
   if (typeof window !== 'undefined') {
-    window.location.assign(href);
+    window.location.assign(withAppBase(href));
   }
   throw new Error(`redirect:${href}`);
 }

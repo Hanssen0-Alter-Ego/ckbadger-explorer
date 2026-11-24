@@ -1,7 +1,15 @@
 import type { Config } from 'tailwindcss';
 
 export default {
-  content: ['./app/**/*.{js,ts,jsx,tsx,mdx}', './components/**/*.{js,ts,jsx,tsx,mdx}'],
+  content: {
+    relative: true,
+    files: [
+      './app/**/*.{js,ts,jsx,tsx,mdx}',
+      './components/**/*.{js,ts,jsx,tsx,mdx}',
+      './site/pages/**/*.{js,ts,jsx,tsx,mdx}',
+      './src/**/*.{js,ts,jsx,tsx,mdx}',
+    ],
+  },
   darkMode: 'class',
   theme: {
     container: {
@@ -15,32 +23,32 @@ export default {
     },
     extend: {
       colors: {
-        // Chinese traditional palette — ink and silk in midnight
+        // Explorer surfaces inspired by the CCC App console. Keep chart categories distinct.
         base: {
-          void: '#08090e',
-          bg: '#0c0e15',
-          surface: '#10131c',
-          elevated: '#161a25',
-          border: '#222840',
-          'border-subtle': '#1a1f30',
+          void: '#070a0c',
+          bg: '#090d10',
+          surface: '#11181c',
+          elevated: '#182228',
+          border: '#344149',
+          'border-subtle': '#28343a',
         },
         text: {
-          bright: '#dee2ec',
-          DEFAULT: '#a0a8be',
-          dim: '#606880',
-          ghost: '#343c50',
+          bright: '#e6eef2',
+          DEFAULT: '#b0bdc5',
+          dim: '#95a2aa',
+          ghost: '#85969f',
         },
         interactive: {
-          DEFAULT: '#68ccf0',
-          hover: '#2edba3',
-          muted: '#68ccf020',
+          DEFAULT: '#5bcefa',
+          hover: '#80ddff',
+          muted: '#5bcefa20',
           dim: '#4aa8d0',
         },
         emphasis: {
-          DEFAULT: '#2edba3',
+          DEFAULT: '#5bcefa',
           dim: '#d0a840',
-          glow: '#2edba340',
-          bright: '#3ef0b8',
+          glow: '#5bcefa40',
+          bright: '#80ddff',
         },
         positive: {
           DEFAULT: '#2edba3',
@@ -58,21 +66,21 @@ export default {
           bright: '#f8d878',
         },
         info: {
-          DEFAULT: '#68ccf0',
+          DEFAULT: '#5bcefa',
           dim: '#4aa8d0',
           bright: '#88ddf8',
         },
         // Chinese traditional named colors
         jade: {
-          DEFAULT: '#2edba3',
-          dim: '#1fb88a',
+          DEFAULT: '#5bcefa',
+          dim: '#50b2d6',
         },
         rouge: {
           DEFAULT: '#e8555a',
           dim: '#c04048',
         },
         aqua: {
-          DEFAULT: '#68ccf0',
+          DEFAULT: '#5bcefa',
           dim: '#4aa8d0',
         },
         gold: {
@@ -95,7 +103,7 @@ export default {
         // Chart accent palette (12 colors)
         'accent-1': '#2edba3',
         'accent-2': '#e8555a',
-        'accent-3': '#68ccf0',
+        'accent-3': '#5bcefa',
         'accent-4': '#f2c55c',
         'accent-5': '#b8a9e8',
         'accent-6': '#d4883a',
@@ -108,7 +116,7 @@ export default {
       },
       fontFamily: {
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
-        display: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
       },
       fontFeatureSettings: {
         tnum: '"tnum"',
@@ -119,7 +127,7 @@ export default {
         'glow-inset': 'inset 0 1px 10px #2edba310',
         'glow-jade': '0 0 10px #2edba328, 0 0 20px #2edba314',
         'glow-rouge': '0 0 10px #e8555a28, 0 0 20px #e8555a14',
-        'glow-aqua': '0 0 10px #68ccf028, 0 0 20px #68ccf014',
+        'glow-aqua': '0 0 10px #5bcefa28, 0 0 20px #5bcefa14',
         'glow-gold': '0 0 10px #f2c55c28, 0 0 20px #f2c55c14',
         'glow-lavender': '0 0 10px #b8a9e828, 0 0 20px #b8a9e814',
         'glow-amber': '0 0 10px #d4883a28, 0 0 20px #d4883a14',

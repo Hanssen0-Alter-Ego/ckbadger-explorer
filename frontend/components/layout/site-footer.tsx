@@ -27,6 +27,12 @@ export function SiteFooter() {
           aria-label="Footer"
           className="col-span-2 row-start-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:col-span-1 lg:col-start-2 lg:row-start-1"
         >
+          <a
+            href="https://github.com/Hanssen0-Alter-Ego/ckbadger-explorer"
+            className="text-text hover:text-jade py-1 transition-colors"
+          >
+            Source Code
+          </a>
           <Link href="/hardforks" className="text-text hover:text-jade py-1 transition-colors">
             Hardforks
           </Link>

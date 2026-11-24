@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "jsx": "preserve",
+    "types": ["node"],
+    "baseUrl": "..",
+    "paths": { "@/*": ["./*"] }
+  },
+  "include": ["next-env.d.ts", "pages/**/*.ts", "pages/**/*.tsx", "explorer-client.tsx"],
+  "exclude": ["node_modules", "out", ".next"]
+}
