@@ -51,7 +51,7 @@ export default {
           bright: 'var(--color-interactive-hover)',
         },
         positive: {
-          DEFAULT: '#2edba3',
+          DEFAULT: 'var(--tone-positive)',
           dim: '#1fb88a',
           bright: '#3ef0b8',
         },
@@ -61,7 +61,7 @@ export default {
           bright: '#f06668',
         },
         warning: {
-          DEFAULT: '#f2c55c',
+          DEFAULT: 'var(--tone-warning)',
           dim: '#d0a840',
           bright: '#f8d878',
         },
@@ -84,7 +84,7 @@ export default {
           dim: '#4aa8d0',
         },
         gold: {
-          DEFAULT: '#f2c55c',
+          DEFAULT: 'var(--tone-warning)',
           dim: '#d0a840',
         },
         lavender: {

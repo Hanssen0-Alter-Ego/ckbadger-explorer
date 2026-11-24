@@ -711,6 +711,8 @@ body,
 /* CCC App primitives, adapted to the existing explorer layout.
    Reference: packages/app/src/app/styles/{tokens,module-controls,workspace,shell}.css */
 :root {
+  --tone-warning: #f2c55c;
+  --tone-positive: #2edba3;
   --surface-recess: #070a0c;
   --text-body: #b0bdc5;
   --text-muted: #89979f;
@@ -721,6 +723,8 @@ body,
 @media (prefers-color-scheme: light) {
   :root:not(.dark) {
     color-scheme: light;
+    --tone-warning: #875e00;
+    --tone-positive: #007950;
     --background: #f3f6f7; --foreground: #16232b;
     --color-surface: #ffffff; --color-elevated: #e7eef1;
     --surface-recess: #eaf0f3; --color-border: #91a5af;
@@ -754,8 +758,6 @@ body, #root .min-h-screen.bg-base-bg {
 .instrument-tab[data-active="true"] { background: var(--color-elevated); box-shadow: inset 0 2px var(--color-interactive); }
 .instrument-search input { border-radius: 0 !important; box-shadow: none !important; background: var(--surface-recess); border-color: var(--color-border); }
 .instrument-search input:focus { border-color: var(--color-interactive); }
-.instrument-search [data-testid="home-search-focus-glow"] { animation: none; border-radius: 0; }
-.instrument-search [data-testid="home-search-focus-border-scan"] { display: none; }
 main :where(button, select), dialog :where(button, input) { border-radius: 0; }
 main :where(button, select, a), header :where(button, a) { transition-duration: 160ms; transition-timing-function: var(--mechanical-ease); }
 main button:active:not(:disabled) { transform: translateY(1px); }

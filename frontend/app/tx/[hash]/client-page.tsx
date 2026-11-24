@@ -46,7 +46,7 @@ const SECTION_TAB_TITLES: Record<SectionTab, string> = {
 };
 const DeferredCellGraph = dynamic(() => import('@/components/cell-graph'), {
   loading: () => (
-    <div className="border-base-border/70 bg-base-surface/70 flex h-[240px] items-center justify-center rounded border">
+    <div className="border-base-border/70 bg-base-surface/70 flex h-[240px] items-center justify-center rounded-none border">
       <p className="text-text-dim text-sm">Loading graph section...</p>
     </div>
   ),
@@ -58,45 +58,45 @@ const WITNESS_SEGMENT_TONES = [
     dot: 'bg-emphasis',
     activePill: 'border-emphasis/70 bg-emphasis/15 text-emphasis',
     valueText: 'text-emphasis',
-    byte: 'rounded bg-emphasis/15 text-emphasis/70',
-    byteActive: 'rounded bg-emphasis/25 text-emphasis ring-1 ring-emphasis/70',
-    byteHover: 'byte-hover-breathe ring-1 ring-emphasis/80 shadow-[0_0_10px_rgba(0,255,65,0.35)]',
-    asciiActive: 'rounded-sm bg-emphasis/20 text-emphasis',
+    byte: 'rounded-none bg-emphasis/15 text-emphasis/70',
+    byteActive: 'rounded-none bg-emphasis/25 text-emphasis ring-1 ring-emphasis/70',
+    byteHover: 'transition-colors duration-150 ring-1 ring-emphasis/80',
+    asciiActive: 'rounded-none bg-emphasis/20 text-emphasis',
     asciiHover:
-      'rounded-sm bg-emphasis/30 text-emphasis shadow-[inset_0_0_0_1px_rgba(0,255,65,0.45)]',
+      'rounded-none bg-emphasis/30 text-emphasis shadow-[inset_0_0_0_1px_rgba(0,255,65,0.45)]',
   },
   {
     dot: 'bg-info',
     activePill: 'border-info/70 bg-info/15 text-info',
     valueText: 'text-info',
-    byte: 'rounded bg-info/15 text-info-dim',
-    byteActive: 'rounded bg-info/25 text-info ring-1 ring-info/70',
-    byteHover: 'byte-hover-breathe ring-1 ring-info/80 shadow-[0_0_10px_rgba(58,110,160,0.35)]',
-    asciiActive: 'rounded-sm bg-info/20 text-info',
-    asciiHover: 'rounded-sm bg-info/30 text-info shadow-[inset_0_0_0_1px_rgba(58,110,160,0.5)]',
+    byte: 'rounded-none bg-info/15 text-info-dim',
+    byteActive: 'rounded-none bg-info/25 text-info ring-1 ring-info/70',
+    byteHover: 'transition-colors duration-150 ring-1 ring-info/80',
+    asciiActive: 'rounded-none bg-info/20 text-info',
+    asciiHover: 'rounded-none bg-info/30 text-info shadow-[inset_0_0_0_1px_rgba(58,110,160,0.5)]',
   },
   {
     dot: 'bg-warning-400',
     activePill: 'border-warning-400/70 bg-warning/15 text-warning',
     valueText: 'text-warning',
-    byte: 'rounded bg-warning/15 text-warning',
-    byteActive: 'rounded bg-warning/25 text-warning ring-1 ring-warning/70',
-    byteHover: 'byte-hover-breathe ring-1 ring-warning/80 shadow-[0_0_10px_rgba(251,191,36,0.35)]',
-    asciiActive: 'rounded-sm bg-warning/20 text-warning',
+    byte: 'rounded-none bg-warning/15 text-warning',
+    byteActive: 'rounded-none bg-warning/25 text-warning ring-1 ring-warning/70',
+    byteHover: 'transition-colors duration-150 ring-1 ring-warning/80',
+    asciiActive: 'rounded-none bg-warning/20 text-warning',
     asciiHover:
-      'rounded-sm bg-warning/30 text-warning-50 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.5)]',
+      'rounded-none bg-warning/30 text-warning-50 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.5)]',
   },
   {
     dot: 'bg-[#9a5090]',
     activePill: 'border-[#9a5090]/70 bg-[#9a5090]/15 text-[#7a4070]',
     valueText: 'text-[#7a4070]',
-    byte: 'rounded bg-[#9a5090]/15 text-[#7a4070]',
-    byteActive: 'rounded bg-[#9a5090]/25 text-[#6a3060] ring-1 ring-[#9a5090]/70',
+    byte: 'rounded-none bg-[#9a5090]/15 text-[#7a4070]',
+    byteActive: 'rounded-none bg-[#9a5090]/25 text-[#6a3060] ring-1 ring-[#9a5090]/70',
     byteHover:
-      'byte-hover-breathe ring-1 ring-[#9a5090]/80 shadow-[0_0_10px_rgba(154,80,144,0.35)]',
-    asciiActive: 'rounded-sm bg-[#9a5090]/20 text-[#6a3060]',
+      'transition-colors duration-150 ring-1 ring-[#9a5090]/80',
+    asciiActive: 'rounded-none bg-[#9a5090]/20 text-[#6a3060]',
     asciiHover:
-      'rounded-sm bg-[#9a5090]/30 text-[#6a3060] shadow-[inset_0_0_0_1px_rgba(154,80,144,0.5)]',
+      'rounded-none bg-[#9a5090]/30 text-[#6a3060] shadow-[inset_0_0_0_1px_rgba(154,80,144,0.5)]',
   },
 ] as const;
 function getWitnessSegmentTone(segmentIndex: number) {
@@ -399,9 +399,9 @@ export default function TransactionDetailPage() {
         <Header />
         <main className="container mx-auto px-4 py-4">
           <div className="animate-pulse space-y-8">
-            <div className="bg-base-surface h-20 w-full rounded" />
-            <div className="bg-base-surface h-64 w-full rounded" />
-            <div className="bg-base-surface h-96 w-full rounded" />
+            <div className="bg-base-surface h-20 w-full rounded-none" />
+            <div className="bg-base-surface h-64 w-full rounded-none" />
+            <div className="bg-base-surface h-96 w-full rounded-none" />
           </div>
         </main>
       </div>
@@ -689,21 +689,21 @@ export default function TransactionDetailPage() {
                     return (
                       <div className="flex items-center justify-end gap-2">
                         {isIncrease && (
-                          <span className="border-positive/30 bg-positive/10 text-positive inline-flex items-center rounded border px-2 py-1 font-mono text-sm tabular-nums">
+                          <span className="border-positive/30 bg-positive/10 text-positive inline-flex items-center rounded-none border px-2 py-1 font-mono text-sm tabular-nums">
                             +{f.integer}
                             <span className="text-positive/60 text-[0.85em]">.{f.decimal}</span>
                             <span className="ml-1 text-[0.85em]">CKB</span>
                           </span>
                         )}
                         {isDecrease && (
-                          <span className="border-negative/30 bg-negative/10 text-negative inline-flex items-center rounded border px-2 py-1 font-mono text-sm tabular-nums">
+                          <span className="border-negative/30 bg-negative/10 text-negative inline-flex items-center rounded-none border px-2 py-1 font-mono text-sm tabular-nums">
                             -{f.integer}
                             <span className="text-negative/60 text-[0.85em]">.{f.decimal}</span>
                             <span className="ml-1 text-[0.85em]">CKB</span>
                           </span>
                         )}
                         {!isIncrease && !isDecrease && (
-                          <span className="border-base-border bg-base-elevated text-text inline-flex items-center rounded border px-2 py-1 text-sm">
+                          <span className="border-base-border bg-base-elevated text-text inline-flex items-center rounded-none border px-2 py-1 text-sm">
                             No change
                           </span>
                         )}
@@ -754,17 +754,17 @@ export default function TransactionDetailPage() {
               </TabsContent>
               <TabsContent
                 value="graph"
-                className="border-base-border/80 bg-base-surface/40 mt-0 rounded border p-4"
+                className="border-base-border/80 bg-base-surface/40 mt-0 rounded-none border p-4"
               >
                 {isProvisional ? (
                   <PendingSectionPlaceholder label="Graph" />
                 ) : (
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="border-base-border/70 bg-base-surface/60 inline-flex rounded border p-1">
+                      <div className="border-base-border/70 bg-base-surface/60 inline-flex rounded-none border p-1">
                         <button
                           type="button"
-                          className={`rounded px-2.5 py-1 text-xs transition-colors ${
+                          className={`rounded-none px-2.5 py-1 text-xs transition-colors ${
                             txGraphView === 'flow'
                               ? 'bg-emphasis/15 text-emphasis'
                               : 'text-text hover:text-text-bright'
@@ -775,7 +775,7 @@ export default function TransactionDetailPage() {
                         </button>
                         <button
                           type="button"
-                          className={`rounded px-2.5 py-1 text-xs transition-colors ${
+                          className={`rounded-none px-2.5 py-1 text-xs transition-colors ${
                             txGraphView === 'graph'
                               ? 'bg-emphasis/15 text-emphasis'
                               : 'text-text hover:text-text-bright'
@@ -794,7 +794,7 @@ export default function TransactionDetailPage() {
                     {txGraphView === 'flow' ? (
                       <div data-testid="tx-relationship-flow" className="space-y-3">
                         <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="border-base-border/70 bg-base-surface/70 rounded border p-3">
+                          <div className="border-base-border/70 bg-base-surface/70 rounded-none border p-3">
                             <div className="text-text text-xs uppercase tracking-wide">
                               Inputs in Graph
                             </div>
@@ -802,7 +802,7 @@ export default function TransactionDetailPage() {
                               {graphInsights.inputLinkCount}
                             </div>
                           </div>
-                          <div className="border-base-border/70 bg-base-surface/70 rounded border p-3">
+                          <div className="border-base-border/70 bg-base-surface/70 rounded-none border p-3">
                             <div className="text-text text-xs uppercase tracking-wide">
                               Outputs in Graph
                             </div>
@@ -810,7 +810,7 @@ export default function TransactionDetailPage() {
                               {graphInsights.outputNodes.length}
                             </div>
                           </div>
-                          <div className="border-base-border/70 bg-base-surface/70 rounded border p-3">
+                          <div className="border-base-border/70 bg-base-surface/70 rounded-none border p-3">
                             <div className="text-text text-xs uppercase tracking-wide">
                               Live Outputs
                             </div>
@@ -821,7 +821,7 @@ export default function TransactionDetailPage() {
                               }
                             </div>
                           </div>
-                          <div className="border-base-border/70 bg-base-surface/70 rounded border p-3">
+                          <div className="border-base-border/70 bg-base-surface/70 rounded-none border p-3">
                             <div className="text-text text-xs uppercase tracking-wide">
                               Dead Outputs
                             </div>
@@ -833,7 +833,7 @@ export default function TransactionDetailPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="border-base-border/70 bg-base-surface/70 rounded border p-3">
+                        <div className="border-base-border/70 bg-base-surface/70 rounded-none border p-3">
                           <div className="text-text text-xs uppercase tracking-wide">
                             Transaction Flow Snapshot
                           </div>
@@ -959,7 +959,7 @@ function InputsOutputsTab({
           Inputs ({tx.inputsCount})
         </h4>
         {tx.inputs && tx.inputs.length > 0 ? (
-          <div className="border-base-border bg-base-surface/50 rounded-lg border">
+          <div className="border-base-border bg-base-surface/50 rounded-none border">
             {tx.inputs.map((input, index) => {
               const isHighlighted = highlightedInputIndices?.has(index) ?? false;
               return (
@@ -1027,7 +1027,7 @@ function InputsOutputsTab({
           Outputs ({tx.outputsCount})
         </h4>
         {tx.outputs && tx.outputs.length > 0 ? (
-          <div className="border-base-border bg-base-surface/50 rounded-lg border">
+          <div className="border-base-border bg-base-surface/50 rounded-none border">
             {tx.outputs.map((output, index) => {
               const isHighlighted = highlightedOutputIndices?.has(index) ?? false;
               return (
@@ -1187,7 +1187,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
   if (!witnessesAvailable && witnessAnalyses.length === 0) {
     return (
       <div className="p-4" data-testid="tx-witness-tab">
-        <div className="border-base-border bg-base-surface/60 text-text rounded border p-4 text-sm">
+        <div className="border-base-border bg-base-surface/60 text-text rounded-none border p-4 text-sm">
           Witness bytes are unavailable in current API mode. Set `[ckb].data_path` in
           `ckbadger.toml` to enable witness inspection.
         </div>
@@ -1197,7 +1197,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
   if (witnessAnalyses.length === 0) {
     return (
       <div className="p-4" data-testid="tx-witness-tab">
-        <div className="border-base-border bg-base-surface/60 text-text rounded border p-4 text-sm">
+        <div className="border-base-border bg-base-surface/60 text-text rounded-none border p-4 text-sm">
           This transaction has no witness entries.
         </div>
       </div>
@@ -1283,7 +1283,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
   return (
     <div className="space-y-4 p-4" data-testid="tx-witness-tab">
       <div className={`grid gap-3 ${scriptGroupLens.length > 0 ? 'md:grid-cols-2' : ''}`}>
-        <div className="border-base-border bg-base-surface/50 rounded border p-3">
+        <div className="border-base-border bg-base-surface/50 rounded-none border p-3">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="text-text-dim text-[11px] uppercase tracking-wider">
               Witness Entries
@@ -1294,7 +1294,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                 data-testid="tx-witness-clear-selection"
                 onClick={clearSelection}
                 disabled={activeWitnessIndex === null && activeScriptGroupKey === null}
-                className={`rounded border px-1.5 py-0.5 font-mono text-[11px] transition ${
+                className={`rounded-none border px-1.5 py-0.5 font-mono text-[11px] transition ${
                   activeWitnessIndex === null && activeScriptGroupKey === null
                     ? 'border-base-border text-text-dim cursor-not-allowed'
                     : 'border-base-border/70 text-text hover:text-text-bright hover:border-base-border/80'
@@ -1302,13 +1302,13 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
               >
                 clear
               </button>
-              <span className="border-base-border/70 bg-base-surface/80 text-text rounded border px-1.5 py-0.5 font-mono text-[11px]">
+              <span className="border-base-border/70 bg-base-surface/80 text-text rounded-none border px-1.5 py-0.5 font-mono text-[11px]">
                 total {witnessAnalyses.length}
               </span>
-              <span className="border-emphasis/30 bg-emphasis/10 text-emphasis rounded border px-1.5 py-0.5 font-mono text-[11px]">
+              <span className="border-emphasis/30 bg-emphasis/10 text-emphasis rounded-none border px-1.5 py-0.5 font-mono text-[11px]">
                 input {inputWitnessCount}
               </span>
-              <span className="border-info/30 bg-info/10 text-info rounded border px-1.5 py-0.5 font-mono text-[11px]">
+              <span className="border-info/30 bg-info/10 text-info rounded-none border px-1.5 py-0.5 font-mono text-[11px]">
                 extra {extraWitnessCount}
               </span>
             </div>
@@ -1320,7 +1320,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                 type="button"
                 data-testid={`tx-witness-item-${witness.index}`}
                 onClick={() => selectWitness(witness.index)}
-                className={`rounded border px-2 py-1.5 text-left transition ${
+                className={`rounded-none border px-2 py-1.5 text-left transition ${
                   witness.index === activeWitnessIndex
                     ? 'border-emphasis/70 bg-emphasis/10'
                     : 'border-base-border/70 bg-base-surface/70 hover:border-base-border/70'
@@ -1346,7 +1346,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
           </div>
         </div>
         {scriptGroupLens.length > 0 && (
-          <div className="border-base-border bg-base-surface/50 rounded border p-3">
+          <div className="border-base-border bg-base-surface/50 rounded-none border p-3">
             <div className="text-text-dim mb-2 text-[11px] uppercase tracking-wider">
               Script Groups
             </div>
@@ -1367,7 +1367,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                         toggleScriptGroupFocus(group.key, group.witnessIndex);
                       }
                     }}
-                    className={`rounded border px-2 py-1.5 ${
+                    className={`rounded-none border px-2 py-1.5 ${
                       isFocused
                         ? 'border-info/70 bg-info/10'
                         : group.witnessIndex === activeWitnessIndex
@@ -1426,7 +1426,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
       {activeScriptGroup && (
         <div
           data-testid="tx-witness-focused-group"
-          className="border-info/30 bg-info/10 flex flex-wrap items-center justify-between gap-2 rounded border px-3 py-2"
+          className="border-info/30 bg-info/10 flex flex-wrap items-center justify-between gap-2 rounded-none border px-3 py-2"
         >
           <div className="text-info text-xs">
             Focused script group: <span className="font-mono">{activeScriptGroup.kind}</span> {'->'}
@@ -1440,7 +1440,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
               onSelectionChange?.(nextWitnessIndex, null);
               syncWitnessQuery(nextWitnessIndex, null);
             }}
-            className="border-info/30 text-info hover:bg-info/20 rounded border px-2 py-1 font-mono text-xs"
+            className="border-info/30 text-info hover:bg-info/20 rounded-none border px-2 py-1 font-mono text-xs"
           >
             Clear focus
           </button>
@@ -1449,21 +1449,21 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
       {activeWitness ? (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-            <div className="border-base-border/70 bg-base-surface/70 inline-flex items-center gap-2 rounded border px-2.5 py-1.5">
+            <div className="border-base-border/70 bg-base-surface/70 inline-flex items-center gap-2 rounded-none border px-2.5 py-1.5">
               <span className="text-text uppercase tracking-wide">Active</span>
               <span className="text-text-bright font-mono">#{activeWitness.index}</span>
               <Badge variant={activeWitness.role === 'input' ? 'green' : 'gray'}>
                 {activeWitness.role}
               </Badge>
             </div>
-            <div className="border-base-border/70 bg-base-surface/70 inline-flex items-center gap-2 rounded border px-2.5 py-1.5">
+            <div className="border-base-border/70 bg-base-surface/70 inline-flex items-center gap-2 rounded-none border px-2.5 py-1.5">
               <span className="text-text uppercase tracking-wide">Size</span>
               <span className="text-text-bright font-mono">
                 {activeWitness.byteLength.toLocaleString()}B
               </span>
             </div>
             <div
-              className={`inline-flex items-center gap-2 rounded border px-2.5 py-1.5 ${
+              className={`inline-flex items-center gap-2 rounded-none border px-2.5 py-1.5 ${
                 activeWitness.isPreviewTruncated
                   ? 'border-warning/30 bg-warning/10'
                   : 'border-emphasis/25 bg-emphasis/5'
@@ -1482,7 +1482,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
           {activeDotcell && (
             <div
               data-testid="tx-witness-dotcell-records"
-              className="border-base-border bg-base-bg/70 mb-3 rounded border"
+              className="border-base-border bg-base-bg/70 mb-3 rounded-none border"
             >
               <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 text-xs">
                 <Badge variant="gold">.cell records</Badge>
@@ -1507,14 +1507,14 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
           {deterministicAnalysis && (
             <div
               data-testid="tx-witness-deterministic-section"
-              className="border-base-border bg-base-bg/70 rounded border p-2"
+              className="border-base-border bg-base-bg/70 rounded-none border p-2"
             >
               <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                 <span className="text-text-dim text-[10px] uppercase tracking-[0.12em]">
                   Deterministic Decode
                 </span>
                 <Badge variant="neutral">{deterministicAnalysis.kind}</Badge>
-                <span className="border-base-border/80 bg-base-surface/70 text-text rounded border px-1.5 py-0.5 font-mono text-[10px]">
+                <span className="border-base-border/80 bg-base-surface/70 text-text rounded-none border px-1.5 py-0.5 font-mono text-[10px]">
                   {deterministicAnalysis.segments.length} segments
                 </span>
                 {pinnedSegmentIndex !== null && (
@@ -1527,7 +1527,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                 {deterministicAnalysis.summary}
               </div>
               <div className="grid gap-2 md:grid-cols-2">
-                <div className="border-base-border bg-base-bg/60 rounded border p-1.5">
+                <div className="border-base-border bg-base-bg/60 rounded-none border p-1.5">
                   <div className="text-text-dim mb-1 text-[10px] uppercase tracking-[0.12em]">
                     Parsed Segments
                   </div>
@@ -1550,7 +1550,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                             setPinnedSegmentIndex((prev) => (prev === idx ? null : idx))
                           }
                           title={segment.meaning}
-                          className={`inline-flex max-w-full items-center gap-1.5 rounded border px-1.5 py-0.5 font-mono text-[11px] transition ${
+                          className={`inline-flex max-w-full items-center gap-1.5 rounded-none border px-1.5 py-0.5 font-mono text-[11px] transition ${
                             isActive
                               ? segmentTone.activePill
                               : inPreview
@@ -1572,7 +1572,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                 </div>
                 <div
                   data-testid="tx-witness-active-segment"
-                  className="border-base-border bg-base-bg/70 h-[132px] overflow-y-auto rounded border p-2 sm:h-[144px]"
+                  className="border-base-border bg-base-bg/70 h-[132px] overflow-y-auto rounded-none border p-2 sm:h-[144px]"
                 >
                   {activeSegment ? (
                     <>
@@ -1625,13 +1625,13 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
           {heuristicGuesses.length > 0 && (
             <div
               data-testid="tx-witness-heuristics-list"
-              className="border-base-border bg-base-bg/70 rounded border p-2"
+              className="border-base-border bg-base-bg/70 rounded-none border p-2"
             >
               <div className="mb-1 flex items-center justify-between gap-2">
                 <div className="text-text-dim text-[10px] uppercase tracking-[0.12em]">
                   Heuristic Guesses
                 </div>
-                <span className="border-base-border/80 bg-base-surface/70 text-text rounded border px-1.5 py-0.5 font-mono text-[10px]">
+                <span className="border-base-border/80 bg-base-surface/70 text-text rounded-none border px-1.5 py-0.5 font-mono text-[10px]">
                   {heuristicGuesses.length}
                 </span>
               </div>
@@ -1647,7 +1647,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                       onClick={() =>
                         setExpandedHeuristicIndex((prev) => (prev === idx ? null : idx))
                       }
-                      className={`rounded border p-1 text-left transition ${
+                      className={`rounded-none border p-1 text-left transition ${
                         isExpanded
                           ? `${guessTone.activePill} bg-opacity-100`
                           : 'border-base-border/80 bg-base-surface/70 hover:border-base-border/80'
@@ -1698,7 +1698,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
               </div>
             </div>
           )}
-          <div className="border-base-border bg-base-bg overflow-x-auto rounded-md border p-4 font-mono text-xs">
+          <div className="border-base-border bg-base-bg overflow-x-auto rounded-none border p-4 font-mono text-xs">
             {activeWitness.previewHex.length === 0 ? (
               <div className="text-text-dim">No bytes to render for this witness.</div>
             ) : (
@@ -1732,34 +1732,34 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                       segmentIndex < 0
                         ? hasActiveSegment
                           ? 'text-text-dim'
-                          : 'rounded bg-base-elevated/70 text-text'
+                          : 'rounded-none bg-base-elevated/70 text-text'
                         : isActiveSegment
                           ? (segmentTone?.byteActive ??
-                            'rounded bg-emphasis/25 text-emphasis ring-1 ring-emphasis/70')
+                            'rounded-none bg-emphasis/25 text-emphasis ring-1 ring-emphasis/70')
                           : hasActiveSegment
                             ? 'text-text-dim opacity-40'
-                            : (segmentTone?.byte ?? 'rounded bg-emphasis/15 text-emphasis/70');
+                            : (segmentTone?.byte ?? 'rounded-none bg-emphasis/15 text-emphasis/70');
                     const asciiClass =
                       segmentIndex < 0
                         ? hasActiveSegment
                           ? 'text-text-dim'
                           : 'text-text-dim'
                         : isActiveSegment
-                          ? (segmentTone?.asciiActive ?? 'rounded-sm bg-emphasis/20 text-emphasis')
+                          ? (segmentTone?.asciiActive ?? 'rounded-none bg-emphasis/20 text-emphasis')
                           : hasActiveSegment
                             ? 'text-text-dim opacity-40'
                             : 'text-text-dim';
                     const asciiHoverClass = isHoveredByte
                       ? segmentIndex >= 0
                         ? (segmentTone?.asciiHover ??
-                          'rounded-sm bg-emphasis/30 text-emphasis shadow-[inset_0_0_0_1px_rgba(0,255,65,0.45)]')
-                        : 'rounded-sm bg-base-border/50 text-text'
+                          'rounded-none bg-emphasis/30 text-emphasis shadow-[inset_0_0_0_1px_rgba(0,255,65,0.45)]')
+                        : 'rounded-none bg-base-border/50 text-text'
                       : '';
                     const hoverBreatheClass = isHoveredByte
                       ? segmentIndex >= 0
                         ? (segmentTone?.byteHover ??
-                          'byte-hover-breathe ring-1 ring-emphasis/80 shadow-[0_0_10px_rgba(0,255,65,0.35)]')
-                        : 'byte-hover-breathe ring-1 ring-base-border/70 shadow-[0_0_8px_rgba(148,163,184,0.35)]'
+                          'transition-colors duration-150 ring-1 ring-emphasis/80')
+                        : 'transition-colors duration-150 ring-1 ring-base-border/70'
                       : '';
                     const title =
                       segmentIndex >= 0 && segmentIndex < dataSegments.length
@@ -1823,7 +1823,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
                           <span
                             key={`ascii-${entry.absoluteOffset}`}
                             data-testid={`tx-witness-ascii-byte-${entry.absoluteOffset}`}
-                            className={`inline-flex w-2.5 justify-center rounded-sm transition-colors duration-100 ${
+                            className={`inline-flex w-2.5 justify-center rounded-none transition-colors duration-100 ${
                               entry.segmentIndex >= 0 ? 'cursor-pointer' : 'cursor-default'
                             } ${entry.asciiClass} ${entry.asciiHoverClass}`}
                             title={entry.title}
@@ -1859,7 +1859,7 @@ function WitnessTab({ tx, scriptLookup, onSelectionChange }: WitnessTabProps) {
       ) : (
         <div
           data-testid="tx-witness-selection-empty"
-          className="border-base-border bg-base-surface/60 text-text rounded border p-4 text-sm"
+          className="border-base-border bg-base-surface/60 text-text rounded-none border p-4 text-sm"
         >
           Select a witness entry or script group to inspect deterministic decode and bytes.
         </div>
@@ -1916,7 +1916,7 @@ function ScriptsSummaryTab({ tx, scriptLookup }: TabProps) {
         <h4 className="border-base-border text-text-dim mb-3 border-b pb-2 font-mono text-xs uppercase tracking-wider">
           Lock Scripts
         </h4>
-        <div className="border-base-border bg-base-surface/50 rounded-lg border">
+        <div className="border-base-border bg-base-surface/50 rounded-none border">
           {Array.from(scriptSummary.lockScripts.values()).map((script) => (
             <TerminalRow
               key={`${script.codeHash}:${script.hashType}`}
@@ -1970,7 +1970,7 @@ function ScriptsSummaryTab({ tx, scriptLookup }: TabProps) {
         <h4 className="border-base-border text-text-dim mb-3 border-b pb-2 font-mono text-xs uppercase tracking-wider">
           Type Scripts
         </h4>
-        <div className="border-base-border bg-base-surface/50 rounded-lg border">
+        <div className="border-base-border bg-base-surface/50 rounded-none border">
           {Array.from(scriptSummary.typeScripts.values()).map((script) => (
             <TerminalRow
               key={`${script.codeHash}:${script.hashType}`}
@@ -2039,7 +2039,7 @@ function CellDepsTab({ cellDeps, isLoading, isPending }: CellDepsTabProps) {
     return <p className="text-text-dim py-8 text-center">No cell dependencies</p>;
   }
   return (
-    <div className="border-base-border bg-base-surface/50 m-4 rounded-lg border">
+    <div className="border-base-border bg-base-surface/50 m-4 rounded-none border">
       {cellDeps.map((cellDep, index) => (
         <TerminalRow
           key={`${cellDep.outPointTxHash}-${cellDep.outPointIndex}`}

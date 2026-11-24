@@ -184,7 +184,7 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
         <div
           className={cn(
             'group relative',
-            isHome && 'overflow-hidden rounded-xl',
+            isHome && 'overflow-hidden rounded-none',
             isCompact && 'overflow-hidden rounded-none'
           )}
         >
@@ -227,7 +227,7 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
             className={cn(
               'text-text-bright w-full font-mono transition-colors focus:outline-none',
               isHome
-                ? 'border-base-border border-jade/50 focus:ring-jade/25 bg-base-surface/95 placeholder:text-text-dim focus:border-jade h-10 rounded-xl border pl-4 pr-20 text-sm shadow-[0_0_0_1px_rgba(46,219,163,0.18),0_6px_20px_rgba(46,219,163,0.18)] focus:ring-2 sm:pr-28'
+                ? 'border-base-border bg-base-surface placeholder:text-text-dim focus:border-interactive h-10 rounded-none border pl-4 pr-20 text-sm duration-150 shadow-none focus:ring-0 sm:pr-28'
                 : isCompact
                   ? cn(
                       'border-jade/18 focus:border-jade/42 h-8 rounded-none border-0 border-b bg-transparent pl-4 pr-2 text-[13px] tracking-[0.015em] caret-jade shadow-none placeholder:text-text-dim focus:border-0 focus:border-b focus:ring-0 focus-visible:border-interactive',
@@ -239,20 +239,7 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
           {showShortcutHints && (!isCompact || (!isInputFocused && !query)) && (
             <SearchShortcutHints variant={isCompact ? 'compact' : 'home'} />
           )}
-          {isHome && isInputFocused && (
-            <>
-              <span
-                data-testid="home-search-focus-glow"
-                className="border-jade/55 animate-terminal-glow-pulse pointer-events-none absolute inset-0 rounded-xl border opacity-100"
-              />
-              <span
-                data-testid="home-search-focus-border-scan"
-                className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
-              >
-                <span className="via-jade absolute bottom-0 left-0 h-[2px] w-24 -translate-x-full bg-gradient-to-r from-transparent to-transparent [animation:terminal-border-scan-ltr_2.4s_linear_infinite]" />
-              </span>
-            </>
-          )}
+
         </div>
       </form>
 
