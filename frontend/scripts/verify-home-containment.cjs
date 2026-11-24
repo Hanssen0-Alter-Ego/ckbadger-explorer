@@ -139,15 +139,12 @@ const makeRows = (count) =>
         await p.waitForTimeout(300);
         const initialY = await p.evaluate(() => scrollY);
         await p.keyboard.press('PageDown');
-        await p.waitForTimeout(150);
-        assert.ok(await region.evaluate((el) => el.scrollTop > 0));
+        await p.waitForFunction(el => el.scrollTop > 0, await region.elementHandle(), {timeout: 3000});
         console.log('keyboard scroll', device, initialY, await p.evaluate(() => scrollY));
         assert.ok(Math.abs((await p.evaluate(() => scrollY)) - initialY) < 2);
         await p.keyboard.press('End');
-        await p.waitForTimeout(150);
-        assert.ok(
-          await region.evaluate((el) => el.scrollTop + el.clientHeight >= el.scrollHeight - 2)
-        );
+        await p.waitForFunction(el => el.scrollTop + el.clientHeight >= el.scrollHeight - 2, await region.elementHandle(), {timeout: 3000});
+        assert.ok(Math.abs((await p.evaluate(() => scrollY)) - initialY) < 2);
         if (output) {
           fs.mkdirSync(output, { recursive: true });
           await p.screenshot({ path: `${output}/${device}-feed-end.png` });
