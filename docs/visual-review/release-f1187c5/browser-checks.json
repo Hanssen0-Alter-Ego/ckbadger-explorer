@@ -1,0 +1,24 @@
+[
+  {
+    "device": "desktop",
+    "searchRoute": "https://hanssen0-alter-ego.github.io/ckbadger-explorer/mainnet/blocks/21099925",
+    "overflow": false
+  },
+  {
+    "device": "desktop",
+    "header": "rgba(9, 13, 16, 0.95)",
+    "byte": "rgba(91, 206, 250, 0.25)",
+    "overflow": false
+  },
+  {
+    "device": "mobile",
+    "searchRoute": "https://hanssen0-alter-ego.github.io/ckbadger-explorer/mainnet/blocks/21099925",
+    "overflow": false
+  },
+  {
+    "device": "mobile",
+    "header": "rgba(9, 13, 16, 0.95)",
+    "byte": "rgba(91, 206, 250, 0.25)",
+    "overflow": false
+  }
+]
