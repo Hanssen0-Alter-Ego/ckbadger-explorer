@@ -19,7 +19,7 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 it('labels current buckets and history separately without sorting clock labels', () => {
   const { container } = render(<MiniStatsCards />);
-  expect(screen.getByText('TXs this hour')).toBeInTheDocument();
+  expect(screen.getByText('Latest hour TXs')).toBeInTheDocument();
   expect(screen.getByText('TXs today')).toBeInTheDocument();
   expect(screen.getByText('Hourly · UTC')).toBeInTheDocument();
   expect(screen.getByText('Daily · UTC+8')).toBeInTheDocument();

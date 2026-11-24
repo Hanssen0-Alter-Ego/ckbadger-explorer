@@ -11,7 +11,7 @@ Production remains at `068e5c9b25f423b0f88d5b27531f2723d8470e46`; this is a prev
 
 ## Verified time semantics
 
-Pinned v0.8.3 [statistics handler](https://github.com/janx/ckbadger/blob/da98312e44cdc3655a6be8b3373caf293631e35a/crates/api/src/routes/statistics.rs#L214-L322) returns hourly buckets oldest-to-newest (up to 24) and daily buckets oldest-to-newest (up to 14). Clock labels alone cross midnight, so 22:00 → 21:00 is not reversed data. `currentHour` is the newest hourly bucket; `currentDay` is the current UTC+8 calendar day. Changed headline labels to “TXs this hour” / “TXs today” and added separate UTC/UTC+8 history captions and oldest → newest direction. Data and ordering are unchanged. Opacity does not imply age, size or completeness.
+Pinned v0.8.3 [statistics handler](https://github.com/janx/ckbadger/blob/da98312e44cdc3655a6be8b3373caf293631e35a/crates/api/src/routes/statistics.rs#L214-L322) returns hourly buckets oldest-to-newest (up to 24) and daily buckets oldest-to-newest (up to 14). Clock labels alone cross midnight, so 22:00 → 21:00 is not reversed data. `currentHour` is the newest hourly bucket; `currentDay` is the current UTC+8 calendar day. Changed headline labels to “Latest hour TXs” / “TXs today” and added separate UTC/UTC+8 history captions and oldest → newest direction. Data and ordering are unchanged. Opacity does not imply age, size or completeness.
 
 ## Reference comparison
 
@@ -31,3 +31,7 @@ Janx main was re-resolved to `ded8f6aa9b74256c49f91866f36581eeda5ca109` during t
 Run offline after building: `CHROMIUM_PATH=/usr/bin/chromium node frontend/scripts/verify-home-ci.cjs` (omit CHROMIUM_PATH when using Playwright's installed Chromium). The separate live-data scripts retain their existing explicit TLS-interception allowance for this environment; deterministic CI needs neither backend nor TLS bypass.
 
 Limits: Chromium viewports, not physical Safari; upstream main comparison is source-only. No Pages dispatch or production push in this candidate turn.
+
+Final hourly-label precision: v0.8.3 chooses the newest available hourly bucket, which can predate the current clock hour when a bucket is absent. “Latest hour TXs” deliberately avoids promising a strict current-hour count. Its updated component test passed, and the final production export and desktop/mobile captures were regenerated.
+
+Independent visual review found no blocking regression. It noted the existing floating LIVE badge can overlap data near the viewport corner; this is not introduced by the chart styling and remains a separate follow-up. Main's richer full-bucket rendering was not borrowed because v0.8.3 does not provide completeness metadata.

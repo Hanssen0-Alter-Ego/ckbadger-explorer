@@ -135,7 +135,7 @@ export function MiniStatsCards({ className }: MiniStatsCardsProps) {
     >
       <div className="grid h-full grid-cols-2 gap-6">
         <TxStatWidget
-          label="TXs this hour"
+          label="Latest hour TXs"
           history="Hourly · UTC"
           value={txsThisHour}
           data={hourlyData}
