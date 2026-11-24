@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@/__tests__/utils/test-utils';
+import { render, screen } from '@/__tests__/utils/test-utils';
 import Home from '@/app/page';
 import { HomeContent } from '@/components/home-content';
 import { api } from '@/lib/api';
@@ -67,17 +67,12 @@ describe('HomeContent layout', () => {
     vi.restoreAllMocks();
   });
 
-  it('has a meaningful homepage H1 and makes the skip link focus the main region', () => {
+  it('gives the homepage a meaningful H1 inside its main landmark', () => {
     vi.spyOn(api, 'getNetworkStats').mockImplementation(() => new Promise(() => {}));
     render(<Home />);
-    const main = screen.getByRole('main');
-    const skip = screen.getByRole('link', { name: 'Skip to main content' });
-    expect(main).toContainElement(
+    expect(screen.getByRole('main')).toContainElement(
       screen.getByRole('heading', { level: 1, name: 'CKB Mainnet Explorer' })
     );
-    expect(skip).toHaveAttribute('href', '#' + main.id);
-    fireEvent.click(skip);
-    expect(main).toHaveFocus();
   });
 
   it('keeps the constrained rows inside the site-wide container used by the header and footer', () => {

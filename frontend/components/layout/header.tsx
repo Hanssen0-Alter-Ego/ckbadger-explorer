@@ -5,6 +5,7 @@ import { usePathname } from '@/src/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { CommandPalette } from '@/components/command-palette';
 import { SearchBar } from '@/components/search-bar';
+import { SkipToMain } from '@/components/layout/skip-to-main';
 import { NetworkSwitcher } from '@/components/layout/network-switcher';
 import {
   NAVBAR_DROPDOWN_ITEM_ACTIVE_CLASS,
@@ -17,6 +18,7 @@ import {
 } from '@/components/layout/navbar-dropdown-styles';
 import { GlobalStatsBar } from '@/components/stats-bar';
 import { useHomeScrollStore } from '@/hooks/useHomeScrollStore';
+import { isBackgroundShortcutBlocked } from '@/lib/keyboard-shortcuts';
 import { cn } from '@/lib/utils';
 
 interface NavLink {
@@ -53,6 +55,15 @@ const navItems: NavItem[] = [
 const DESKTOP_START_COLUMN = 'hidden md:block md:w-[108px] md:shrink-0';
 
 export function Header() {
+  return (
+    <>
+      <SkipToMain />
+      <HeaderBar />
+    </>
+  );
+}
+
+function HeaderBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const mobileNavId = useId();
@@ -99,7 +110,8 @@ export function Header() {
     <header
       className="explorer-console border-base-border bg-base-bg/95 sticky top-0 z-40 mb-4 overflow-visible border-b backdrop-blur-sm"
       onKeyDown={(event) => {
-        if (event.defaultPrevented || event.key !== 'Escape' || !isMenuOpen) return;
+        if (event.key !== 'Escape' || !isMenuOpen || isBackgroundShortcutBlocked(event.nativeEvent))
+          return;
         event.preventDefault();
         setIsMenuOpen(false);
         mobileMenuRef.current?.focus();

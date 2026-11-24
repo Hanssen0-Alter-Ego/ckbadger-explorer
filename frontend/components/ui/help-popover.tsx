@@ -3,6 +3,7 @@
 import { type CSSProperties, type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { isBackgroundShortcutBlocked } from '@/lib/keyboard-shortcuts';
 
 interface HelpPopoverProps {
   label: string;
@@ -66,7 +67,7 @@ export function HelpPopover({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isBackgroundShortcutBlocked(event)) {
         clearHoverCloseTimer();
         setPinned(false);
         setHoveredTrigger(false);

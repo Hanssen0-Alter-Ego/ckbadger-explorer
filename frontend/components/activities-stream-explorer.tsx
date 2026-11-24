@@ -8,6 +8,7 @@ import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { api, type GlobalActivity, type GlobalActivityFilter } from '@/lib/api';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 import { cn, formatTimeAgo, truncateHash } from '@/lib/utils';
+import { isBackgroundShortcutBlocked } from '@/lib/keyboard-shortcuts';
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 const POLL_INTERVAL_MS = 10_000;
@@ -200,7 +201,7 @@ function FilterDropdown({
       }
     };
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape' && !isBackgroundShortcutBlocked(e)) setOpen(false);
     };
     document.addEventListener('mousedown', handleClose);
     document.addEventListener('touchstart', handleClose);

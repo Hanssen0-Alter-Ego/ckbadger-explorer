@@ -59,7 +59,7 @@ export function HomeContent({ initialData }: HomeContentProps) {
   });
 
   return (
-    <main id="main-content" tabIndex={-1} className="scroll-mt-24 py-4 sm:py-6">
+    <main className="py-4 sm:py-6">
       <div className="container mx-auto px-4">
         <h1 className="text-text-bright text-xl font-semibold tracking-tight sm:text-2xl">
           CKB {network === 'testnet' ? 'Testnet' : 'Mainnet'} Explorer

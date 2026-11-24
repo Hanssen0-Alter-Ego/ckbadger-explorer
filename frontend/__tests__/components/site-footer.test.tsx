@@ -29,7 +29,13 @@ describe('SiteFooter', () => {
     expect(cknervLink).toHaveAttribute('rel', 'noreferrer');
     const web5Link = within(navigation).getByRole('link', { name: 'Web5' });
     expect(web5Link).toHaveAttribute('href', 'https://web5.info');
+    const sourceLink = within(navigation).getByRole('link', { name: 'Source Code' });
+    expect(sourceLink).toHaveAttribute(
+      'href',
+      'https://github.com/Hanssen0-Alter-Ego/ckbadger-explorer'
+    );
     expect(within(navigation).getAllByRole('link')).toEqual([
+      sourceLink,
       hardforksLink,
       fiberLink,
       cknervLink,

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { render } from '../utils/test-utils';
+import { CommandPalette } from '@/components/command-palette';
 import BlockDetailPage from '@/app/blocks/[id]/client-page';
 import { api } from '@/lib/api';
 
@@ -166,6 +167,51 @@ describe('BlockDetailPage', () => {
     expect(pushMock).toHaveBeenNthCalledWith(2, `/blocks/${mockBlock.number - 1}`);
     expect(pushMock).toHaveBeenNthCalledWith(3, `/blocks/${mockBlock.number + 1}`);
     expect(pushMock).toHaveBeenNthCalledWith(4, `/blocks/${mockBlock.number + 1}`);
+  });
+
+  it('ignores modal and already-handled keys, and resumes block shortcuts after the modal closes', async () => {
+    Object.defineProperties(HTMLDialogElement.prototype, {
+      showModal: {
+        configurable: true,
+        value(this: HTMLDialogElement) {
+          this.open = true;
+        },
+      },
+      close: {
+        configurable: true,
+        value(this: HTMLDialogElement) {
+          this.open = false;
+        },
+      },
+    });
+    render(
+      <>
+        <BlockDetailPage />
+        <CommandPalette />
+      </>
+    );
+    await screen.findByText('Block #8,775,638');
+    window.addEventListener('keydown', (event) => event.preventDefault(), {
+      capture: true,
+      once: true,
+    });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(pushMock).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const dialog = screen.getByRole('dialog', { name: 'Command palette' });
+    const close = screen.getByRole('button', { name: 'Close' });
+    close.focus();
+    fireEvent.keyDown(close, { key: 'ArrowRight' });
+    fireEvent.keyDown(close, { key: 'h' });
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(pushMock).not.toHaveBeenCalled();
+
+    fireEvent(dialog, new Event('cancel', { cancelable: true }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(pushMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledWith('/blocks/' + (mockBlock.number + 1));
   });
 
   it('loads hardfork resources from timeline when block payload has no resources', async () => {

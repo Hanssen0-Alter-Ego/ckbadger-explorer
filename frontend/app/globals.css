@@ -41,6 +41,10 @@ body,
   outline-offset: 3px;
 }
 
+#main-content {
+  scroll-margin-top: 6rem;
+}
+
 .explorer-console {
   box-shadow: inset 0 1px rgb(230 238 242 / 0.12);
 }

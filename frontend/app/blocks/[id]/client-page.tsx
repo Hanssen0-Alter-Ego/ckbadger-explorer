@@ -21,6 +21,7 @@ import { api, isNotFoundApiError } from '@/lib/api';
 import { useActiveNetwork } from '@/hooks/useActiveNetwork';
 import { isEditableElement } from '@/lib/search-focus';
 import { formatCkbAmount } from '@/lib/utils';
+import { isBackgroundShortcutBlocked } from '@/lib/keyboard-shortcuts';
 
 const BLOCK_MAX_SIZE = 597_000;
 const BLOCK_MAX_CYCLES = 3_500_000_000;
@@ -102,6 +103,7 @@ export default function BlockDetailPage() {
 
     const handleWindowKeyDown = (event: KeyboardEvent) => {
       if (
+        isBackgroundShortcutBlocked(event) ||
         isEditableElement(event.target) ||
         event.metaKey ||
         event.ctrlKey ||

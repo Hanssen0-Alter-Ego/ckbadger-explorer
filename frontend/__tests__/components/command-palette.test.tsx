@@ -111,6 +111,23 @@ describe('CommandPalette', () => {
     expect(pushMock).toHaveBeenCalledWith(`/tx/${txHash}`);
   });
 
+  it('only offers Enter navigation if the current text can be routed', () => {
+    render(<CommandPalette />);
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'something unknown' } });
+    expect(screen.getByRole('status')).toHaveTextContent('No command or exact ID matched');
+    expect(screen.getByRole('status')).not.toHaveTextContent('Press Enter');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: 'block:123' } });
+    expect(screen.getByRole('status')).toHaveTextContent('Press Enter to open');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(pushMock).toHaveBeenCalledWith('/blocks/123');
+  });
+
   it('focuses global search input on slash', () => {
     render(
       <>

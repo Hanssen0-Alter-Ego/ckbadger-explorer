@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useRouter } from '@/src/navigation';
 import { focusGlobalSearchInput, isEditableElement } from '@/lib/search-focus';
+import { isBackgroundShortcutBlocked } from '@/lib/keyboard-shortcuts';
 import { resolveSearchRoute } from '@/lib/search-routing';
 
 interface CommandItem {
@@ -166,6 +167,7 @@ export function CommandPalette() {
     [normalizedQuery]
   );
 
+  const directRoute = matchingCommands.length === 0 ? resolveSearchRoute(query) : null;
   const activeOption = matchingCommands[selectedIndex];
   const activeOptionId = activeOption ? listboxId + '-' + activeOption.id : undefined;
 
@@ -212,7 +214,8 @@ export function CommandPalette() {
       const isMetaOrCtrl = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
 
-      if (isMetaOrCtrl && !event.altKey && key === 'k') {
+      const backgroundBlocked = isBackgroundShortcutBlocked(event);
+      if (isMetaOrCtrl && !event.altKey && key === 'k' && (isOpen || !backgroundBlocked)) {
         event.preventDefault();
         setIsGotoChordActive(false);
         if (!isOpen) {
@@ -223,6 +226,8 @@ export function CommandPalette() {
         setIsOpen(true);
         return;
       }
+
+      if (backgroundBlocked) return;
 
       if (
         event.key === '?' &&
@@ -316,12 +321,8 @@ export function CommandPalette() {
 
     if (command) {
       router.push(command.href);
-    } else if (normalizedQuery) {
-      const route = resolveSearchRoute(query);
-      if (!route) {
-        return;
-      }
-      router.push(route);
+    } else if (directRoute) {
+      router.push(directRoute);
     } else {
       return;
     }
@@ -358,6 +359,7 @@ export function CommandPalette() {
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
+      aria-modal="true"
       className="border-base-border bg-base-surface text-text inset-x-0 top-[min(12vh,4rem)] m-0 mx-auto max-h-[82dvh] w-[calc(100%_-_2rem)] max-w-2xl overflow-auto rounded-xl border shadow-2xl backdrop:bg-base-bg/70"
       onCancel={(event) => {
         event.preventDefault();
@@ -406,7 +408,7 @@ export function CommandPalette() {
                 setSelectedIndex(0);
               }}
               onKeyDown={handleInputKeyDown}
-              placeholder="Type a command, or search block / tx / address"
+              placeholder="Type a command, block height, or exact ID"
               className="focus:border-jade focus:ring-jade border-base-border bg-base-bg text-text-bright w-full rounded-md border px-3 py-2 font-mono text-sm outline-none focus:ring-1"
               aria-label="Command palette input"
             />
@@ -438,8 +440,10 @@ export function CommandPalette() {
                 ))}
               </ul>
             ) : (
-              <div className="text-text-dim rounded-md px-3 py-2 font-mono text-sm">
-                No command matched. Press Enter to run search.
+              <div role="status" className="text-text-dim rounded-md px-3 py-2 font-mono text-sm">
+                {directRoute
+                  ? 'Press Enter to open the matching explorer page.'
+                  : 'No command or exact ID matched. Use the global search for more suggestions.'}
               </div>
             )}
           </div>

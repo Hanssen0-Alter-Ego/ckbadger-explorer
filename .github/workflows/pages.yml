@@ -30,7 +30,8 @@ jobs:
           __tests__/components/search-bar.test.tsx __tests__/components/command-palette.test.tsx
           __tests__/components/header.test.tsx __tests__/components/home-content.test.tsx
           __tests__/components/not-found-page.test.tsx __tests__/components/block-detail-error.test.tsx
-          __tests__/pages/inventory.test.tsx
+          __tests__/components/site-footer.test.tsx __tests__/components/activities-stream-explorer.test.tsx
+          __tests__/pages/inventory.test.tsx __tests__/pages/block-detail.test.tsx
       - name: Build and verify Next.js export
         env:
           PAGES_BASE: /${{ github.event.repository.name }}/

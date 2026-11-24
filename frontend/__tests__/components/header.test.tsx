@@ -113,6 +113,39 @@ describe('Header', () => {
     expect(screen.getAllByRole('link', { name: 'DAO' })).toHaveLength(1);
   });
 
+  it('skips shared navigation and focuses non-home content without clearing a fragment', async () => {
+    usePathnameMock.mockReturnValue('/inventory/tokens');
+    const user = userEvent.setup();
+    window.history.replaceState(
+      null,
+      '',
+      '/ckbadger-explorer/mainnet/inventory/tokens?sort=supply#list'
+    );
+    try {
+      render(
+        <>
+          <Header />
+          <main>
+            <h1>Tokens</h1>
+            <a href="#list">Token list</a>
+          </main>
+        </>
+      );
+      await user.tab();
+      const skip = screen.getByRole('link', { name: 'Skip to main content' });
+      expect(skip).toHaveFocus();
+      const main = screen.getByRole('main');
+      expect(skip).toHaveAttribute('href', '#' + main.id);
+      await user.keyboard('{Enter}');
+      expect(main).toHaveFocus();
+      expect(window.location.search + window.location.hash).toBe('?sort=supply#list');
+      await user.tab();
+      expect(screen.getByRole('link', { name: 'Token list' })).toHaveFocus();
+    } finally {
+      window.history.replaceState(null, '', '/');
+    }
+  });
+
   it('opens Inventory explicitly with the keyboard, tabs into links, and restores focus on Escape', async () => {
     usePathnameMock.mockReturnValue('/inventory/tokens');
     const user = userEvent.setup();
