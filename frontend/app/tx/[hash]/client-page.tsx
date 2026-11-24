@@ -954,7 +954,7 @@ function InputsOutputsTab({
 }: InputsOutputsTabProps) {
   return (
     <div className="grid gap-6 p-4 lg:grid-cols-2">
-      <div>
+      <div className="min-w-0">
         <h4 className="border-base-border text-text-dim mb-3 border-b pb-2 font-mono text-xs uppercase tracking-wider">
           Inputs ({tx.inputsCount})
         </h4>
@@ -978,8 +978,8 @@ function InputsOutputsTab({
                       : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <span className="text-text-dim font-mono text-xs">#{index}</span>
                       <ScriptLabel script={input.lock} scriptLookup={scriptLookup} type="lock" />
                       <ScriptLabel script={input.type} scriptLookup={scriptLookup} type="type" />
@@ -1001,7 +1001,7 @@ function InputsOutputsTab({
                     )}
                   </div>
                   {(input.address || input.capacity) && (
-                    <div className="flex items-center justify-between">
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                       {input.address ? (
                         <Address address={input.address} />
                       ) : (
@@ -1022,7 +1022,7 @@ function InputsOutputsTab({
           <p className="text-text-dim text-sm">Loading inputs...</p>
         )}
       </div>
-      <div>
+      <div className="min-w-0">
         <h4 className="border-base-border text-text-dim mb-3 border-b pb-2 font-mono text-xs uppercase tracking-wider">
           Outputs ({tx.outputsCount})
         </h4>
@@ -1046,8 +1046,8 @@ function InputsOutputsTab({
                       : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <span className="text-text-dim font-mono text-xs">#{index}</span>
                       <ScriptLabel script={output.lock} scriptLookup={scriptLookup} type="lock" />
                       <ScriptLabel script={output.type} scriptLookup={scriptLookup} type="type" />
@@ -1059,7 +1059,7 @@ function InputsOutputsTab({
                       View Cell
                     </Link>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                     {output.address ? (
                       <Address address={output.address} />
                     ) : (
