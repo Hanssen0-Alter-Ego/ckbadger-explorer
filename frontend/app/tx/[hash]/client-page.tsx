@@ -534,7 +534,7 @@ export default function TransactionDetailPage() {
                     ).toLocaleString()}
                   </Link>
                 ) : lifecycle?.proposedIn ? (
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-3">
                     <div className="flex items-center gap-1.5">
                       <span className="text-text-dim text-xs">Proposed</span>
                       <Link
