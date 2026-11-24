@@ -104,7 +104,7 @@ export function HomeContent({ initialData }: HomeContentProps) {
 
         {/* Row 5: Latest Activities | Activity Card */}
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <LatestActivities isRealtime={isConnected} />
+          <LatestActivities isRealtime={isConnected} scrollable />
           <ActivityCard isRealtime={isConnected} />
         </div>
       </div>
@@ -112,12 +112,15 @@ export function HomeContent({ initialData }: HomeContentProps) {
       {/* Row 6: Transaction Pipeline. A plain block sibling of the container rows spans the page
           width on its own; sizing it in viewport units (w-screen, 50vw margins) overflows by the
           vertical scrollbar width and adds a horizontal scrollbar. */}
-      <div className="mt-4">
+      <div className="mt-4" data-testid="home-pipeline-section">
         <PipelinePreview initialBlocks={initialData.blocks} />
       </div>
 
       {/* Row 7: Latest Blocks & Transactions */}
-      <div className="container mx-auto mt-5 grid gap-4 px-4 lg:grid-cols-2">
+      <div
+        data-testid="home-latest-section"
+        className="container mx-auto mt-5 grid gap-4 px-4 lg:grid-cols-2"
+      >
         <LatestBlocks isRealtime={isConnected} initialBlocks={initialData.blocks} />
         <LatestTransactions
           isRealtime={isConnected}

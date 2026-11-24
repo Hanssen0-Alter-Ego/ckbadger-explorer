@@ -20,7 +20,7 @@ const STREAM_KEYFRAMES = `
   to { transform: translateY(0); opacity: 1; }
 }
 @keyframes stream-glow-fade {
-  from { background-color: rgba(46, 219, 163, 0.1); }
+  from { background-color: rgba(91, 206, 250, 0.1); }
   to { background-color: transparent; }
 }
 `;
@@ -127,6 +127,8 @@ export function LatestActivities({
     data: activities,
     isLoading,
     isFetching,
+    isError,
+    refetch,
   } = useQuery({
     queryKey: ['latest-activities', queryLimit],
     queryFn: () => api.getLatestActivities(queryLimit),
@@ -166,7 +168,7 @@ export function LatestActivities({
   const headerActions = showViewAllLink ? (
     <Link
       href="/activities"
-      className="text-text-dim hover:text-jade font-mono text-xs transition-colors"
+      className="explorer-primary-action px-3 py-2 font-mono text-xs transition-colors"
     >
       VIEW ALL &rarr;
     </Link>
@@ -176,7 +178,9 @@ export function LatestActivities({
     <TerminalPanel
       variant="default"
       glow={isRealtime}
-      className={cn('flex h-[38rem] flex-col', panelClassName)}
+      data-testid="latest-activities-panel"
+      innerClassName="flex min-h-0 flex-1 flex-col"
+      className={cn('flex h-[38rem] min-h-0 flex-col overflow-hidden', panelClassName)}
     >
       <TerminalPanelHeader indicator={isRealtime ? 'active' : 'inactive'} actions={headerActions}>
         Latest Activities
@@ -184,48 +188,71 @@ export function LatestActivities({
       <TerminalPanelContent padding="none" className="min-h-0 flex-1">
         <div
           data-testid="latest-activities-content"
-          className={cn('h-full', scrollable ? 'overflow-y-auto' : 'overflow-hidden')}
+          aria-busy={showSkeleton}
+          role={scrollable ? 'region' : undefined}
+          aria-label={scrollable ? 'Latest activities feed' : undefined}
+          tabIndex={scrollable ? 0 : undefined}
+          className={cn(
+            'h-full min-h-0 overscroll-contain',
+            scrollable ? 'overflow-y-auto' : 'overflow-hidden'
+          )}
         >
-          {showSkeleton
-            ? Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="border-base-border/50 animate-pulse border-b px-3 py-2 last:border-b-0"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="bg-base-elevated h-4 w-28 rounded" />
-                    <div className="bg-base-elevated h-3 w-14 rounded" />
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <div className="bg-base-elevated h-3 w-24 rounded" />
-                    <div className="bg-base-elevated h-3 w-20 rounded" />
-                  </div>
+          {showSkeleton ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="border-base-border/50 animate-pulse border-b px-3 py-2 last:border-b-0"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="bg-base-elevated h-4 w-28 rounded" />
+                  <div className="bg-base-elevated h-3 w-14 rounded" />
                 </div>
-              ))
-            : visibleItems.map((activity) => {
-                const key = itemKey(activity);
-                const isNew = newItemKeys.has(key);
+                <div className="mt-1.5 flex items-center justify-between">
+                  <div className="bg-base-elevated h-3 w-24 rounded" />
+                  <div className="bg-base-elevated h-3 w-20 rounded" />
+                </div>
+              </div>
+            ))
+          ) : isError && itemCount === 0 ? (
+            <div role="alert" className="p-4 text-sm text-negative">
+              Activities could not be loaded.
+              <button
+                type="button"
+                className="explorer-primary-action mt-3 block px-3 py-2"
+                onClick={() => void refetch()}
+              >
+                Retry activities
+              </button>
+            </div>
+          ) : visibleItems.length === 0 ? (
+            <p className="p-4 text-sm text-text-dim">No recent activities.</p>
+          ) : (
+            visibleItems.map((activity) => {
+              const key = itemKey(activity);
+              const isNew = newItemKeys.has(key);
 
-                return (
-                  <div
-                    key={key}
-                    className={cn(
-                      'border-base-border/50 border-b px-3 py-2 last:border-b-0',
-                      'hover:bg-base-elevated/50 transition-all duration-300'
-                    )}
-                    style={
-                      isNew
-                        ? {
-                            animation:
-                              'stream-slide-in 300ms ease-out, stream-glow-fade 2s ease-out forwards',
-                          }
-                        : undefined
-                    }
-                  >
-                    <StreamItem activity={activity} />
-                  </div>
-                );
-              })}
+              return (
+                <div
+                  key={key}
+                  data-activity-row
+                  className={cn(
+                    'border-base-border/50 border-b px-3 py-2 last:border-b-0',
+                    'hover:bg-base-elevated/50 transition-colors duration-150'
+                  )}
+                  style={
+                    isNew
+                      ? {
+                          animation:
+                            'stream-slide-in 300ms ease-out, stream-glow-fade 2s ease-out forwards',
+                        }
+                      : undefined
+                  }
+                >
+                  <StreamItem activity={activity} />
+                </div>
+              );
+            })
+          )}
         </div>
       </TerminalPanelContent>
     </TerminalPanel>

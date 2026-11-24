@@ -1,0 +1,122 @@
+[
+  {
+    "device": "desktop",
+    "mode": "long",
+    "client": 555,
+    "scroll": 1779,
+    "regionBottom": 707.15625,
+    "panelBottom": 708.15625,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 724.15625,
+    "passed": true
+  },
+  {
+    "device": "desktop",
+    "mode": "short",
+    "client": 555,
+    "scroll": 555,
+    "regionBottom": 706.53125,
+    "panelBottom": 707.53125,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 723.53125,
+    "passed": true
+  },
+  {
+    "device": "desktop",
+    "mode": "empty",
+    "client": 555,
+    "scroll": 555,
+    "regionBottom": 707.15625,
+    "panelBottom": 708.15625,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 724.15625,
+    "passed": true
+  },
+  {
+    "device": "desktop",
+    "mode": "error",
+    "client": 555,
+    "scroll": 555,
+    "regionBottom": 707.15625,
+    "panelBottom": 708.15625,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 724.15625,
+    "passed": true
+  },
+  {
+    "device": "desktop",
+    "mode": "loading",
+    "client": 555,
+    "scroll": 555,
+    "regionBottom": 707.15625,
+    "panelBottom": 708.15625,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 724.15625,
+    "passed": true
+  },
+  {
+    "device": "mobile",
+    "mode": "long",
+    "client": 555,
+    "scroll": 1779,
+    "regionBottom": 706.5,
+    "panelBottom": 707.5,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 1306.5,
+    "passed": true
+  },
+  {
+    "device": "mobile",
+    "mode": "short",
+    "client": 555,
+    "scroll": 555,
+    "regionBottom": 706.5,
+    "panelBottom": 707.5,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 1306.5,
+    "passed": true
+  },
+  {
+    "device": "mobile",
+    "mode": "empty",
+    "client": 555,
+    "scroll": 555,
+    "regionBottom": 706.5,
+    "panelBottom": 707.5,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 1306.5,
+    "passed": true
+  },
+  {
+    "device": "mobile",
+    "mode": "error",
+    "client": 555,
+    "scroll": 555,
+    "regionBottom": 706.5,
+    "panelBottom": 707.5,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 1306.5,
+    "passed": true
+  },
+  {
+    "device": "mobile",
+    "mode": "loading",
+    "client": 555,
+    "scroll": 555,
+    "regionBottom": 706.5,
+    "panelBottom": 707.5,
+    "paintOutside": false,
+    "overflowX": false,
+    "pipelineTop": 1306.5,
+    "passed": true
+  }
+]

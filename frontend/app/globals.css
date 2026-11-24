@@ -801,3 +801,11 @@ main .shadow-glow, main .shadow-glow-jade, main .shadow-glow-gold { box-shadow: 
 .instrument-search input:not(:focus) { text-overflow: ellipsis; }
 .neon-bar-left::before { background: var(--color-border); box-shadow: none; }
 @media (max-width: 640px) { .home-mini-chart text { font-size: 16px; } }
+
+/* Mounted CCC module: cyan is a deliberate action/selection signal, not ambient glow. */
+.explorer-primary-action { color: #071117; background: var(--color-interactive); border: 1px solid var(--color-interactive); font-weight: 700; }
+.explorer-primary-action:hover { background: var(--color-interactive-hover); border-color: var(--color-interactive-hover); }
+.instrument-panel:focus-within { border-color: var(--color-interactive); }
+.instrument-tab[data-active="true"] { border-color: var(--color-interactive); background: rgb(91 206 250 / .1); }
+#main-content { background-image: linear-gradient(rgb(91 206 250 / .025) 1px, transparent 1px), linear-gradient(90deg, rgb(91 206 250 / .025) 1px, transparent 1px); background-size: 32px 32px; }
+@media (prefers-reduced-motion: reduce) { [data-testid="latest-activities-content"] > div { animation: none !important; } }

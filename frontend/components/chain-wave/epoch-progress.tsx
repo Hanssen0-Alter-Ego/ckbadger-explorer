@@ -46,7 +46,7 @@ export function EpochProgress({
 
       <div className="bg-base-elevated relative h-3 overflow-hidden rounded-none sm:h-4">
         <div
-          className="absolute inset-y-0 left-0 rounded-none bg-text-dim transition-[width] duration-200"
+          className="absolute inset-y-0 left-0 rounded-none bg-interactive/70 transition-[width] duration-200"
           style={{ width: `${progressClamped}%` }}
         />
         <div

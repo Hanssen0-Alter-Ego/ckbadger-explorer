@@ -159,7 +159,7 @@ function ChartCard({
             {leftLabel}
           </div>
           <div
-            className={`text-text-bright font-mono text-xl font-bold tabular-nums ${isLoading ? 'animate-pulse' : ''}`}
+            className={`text-interactive font-mono text-xl font-bold tabular-nums ${isLoading ? 'animate-pulse' : ''}`}
           >
             {leftValue}
           </div>

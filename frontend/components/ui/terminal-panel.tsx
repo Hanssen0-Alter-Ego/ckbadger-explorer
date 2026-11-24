@@ -20,6 +20,7 @@ interface TerminalPanelProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'elevated' | 'inset';
   glow?: boolean;
   accentColor?: AccentColor;
+  innerClassName?: string;
 }
 
 export function TerminalPanel({
@@ -29,6 +30,7 @@ export function TerminalPanel({
   glow = false,
   accentColor = 'jade',
   style,
+  innerClassName,
   ...props
 }: TerminalPanelProps) {
   const variantClasses = {
@@ -53,7 +55,7 @@ export function TerminalPanel({
         } as CSSProperties
       }
     >
-      <div className="relative z-10">{children}</div>
+      <div className={cn('relative z-10', innerClassName)}>{children}</div>
     </div>
   );
 }
@@ -135,13 +137,7 @@ interface TerminalPanelFooterProps {
 
 export function TerminalPanelFooter({ children, className }: TerminalPanelFooterProps) {
   return (
-    <div
-      className={cn(
-        'border-base-border border-t px-3 py-2',
-        'bg-base-surface',
-        className
-      )}
-    >
+    <div className={cn('border-base-border border-t px-3 py-2', 'bg-base-surface', className)}>
       {children}
     </div>
   );
@@ -163,14 +159,7 @@ export function TerminalDivider({ className, label }: TerminalDividerProps) {
     );
   }
 
-  return (
-    <div
-      className={cn(
-        'bg-base-border h-px',
-        className
-      )}
-    />
-  );
+  return <div className={cn('bg-base-border h-px', className)} />;
 }
 
 interface TerminalRowProps extends HTMLAttributes<HTMLDivElement> {

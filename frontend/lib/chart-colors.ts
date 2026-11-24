@@ -1,12 +1,12 @@
 // CCC steel/signal family adapted for distinguishable explorer series; labels remain authoritative.
-export const CHART_PRIMARY_COLOR = '#b7c8d0'; // 翠玉 jade
-export const CHART_SECONDARY_COLOR = '#7e929e'; // 胭脂 rouge
-export const CHART_TERTIARY_COLOR = '#5bcefa'; // 缥碧 aqua
+export const CHART_PRIMARY_COLOR = '#5bcefa'; // Primary cyan signal
+export const CHART_SECONDARY_COLOR = '#7e929e'; // Secondary steel
+export const CHART_TERTIARY_COLOR = '#b7c8d0'; // Tertiary pale steel
 
 export const CHART_PALETTE = [
-  '#b7c8d0', // jade
-  '#7e929e', // rouge
-  '#5bcefa', // aqua
+  CHART_PRIMARY_COLOR,
+  CHART_SECONDARY_COLOR,
+  CHART_TERTIARY_COLOR,
   '#c3b9a6', // gold
   '#b1bcc3', // lavender
   '#a69c91', // amber
