@@ -27,8 +27,14 @@ jobs:
           name: explorer-pnpm-lock
           path: pnpm-lock.yaml
           if-no-files-found: error
-      - name: Test hosting, runtime routing, and network isolation
-        run: corepack pnpm@9.15.0 --dir frontend exec vitest run --maxWorkers=2 --minWorkers=1 __tests__/lib/pages-hosting.test.ts __tests__/lib/active-network.test.ts
+      - name: Test routing and reviewed accessibility regressions
+        run: >-
+          corepack pnpm@9.15.0 --dir frontend exec vitest run --maxWorkers=2 --minWorkers=1
+          __tests__/lib/pages-hosting.test.ts __tests__/lib/active-network.test.ts
+          __tests__/components/search-bar.test.tsx __tests__/components/command-palette.test.tsx
+          __tests__/components/header.test.tsx __tests__/components/home-content.test.tsx
+          __tests__/components/not-found-page.test.tsx __tests__/components/block-detail-error.test.tsx
+          __tests__/pages/inventory.test.tsx
       - name: Build and verify the Next.js static export
         run: |
           corepack pnpm@9.15.0 --dir frontend build

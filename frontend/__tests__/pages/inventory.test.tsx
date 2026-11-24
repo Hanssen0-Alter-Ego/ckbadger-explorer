@@ -323,6 +323,15 @@ describe('Tokens Inventory Page', () => {
     });
   });
 
+  it('reserves the same Holders-to-Circulation gutter in header and rows', async () => {
+    vi.mocked(api.getAssets).mockResolvedValue(mockTokenAssets);
+    render(<TokensPage />);
+    const header = await screen.findByRole('button', { name: 'Sort by Circulation' });
+    const value = screen.getByTitle('Total Circulation: 10,000');
+    expect(header).toHaveClass('ml-3');
+    expect(value.parentElement).toHaveClass('ml-3');
+  });
+
   it('scales total supply exactly for decimals beyond double precision', async () => {
     // decimals is the raw, unvalidated first byte of the xUDT Unique Cell, so
     // >= 23 is reachable. A BigInt(10 ** 24) divisor rendered 10^24 base units

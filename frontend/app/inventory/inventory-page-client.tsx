@@ -199,6 +199,7 @@ function InventoryTable({
   const smallNumberColumnClass = 'w-20 shrink-0 whitespace-nowrap text-right';
   const mediumNumberColumnClass = 'w-28 shrink-0 whitespace-nowrap text-right';
   const capacityColumnClass = 'w-28 shrink-0 whitespace-nowrap text-right';
+  const circulationColumnClass = capacityColumnClass + ' ml-3';
   const formatNumber = (num: number | string) => {
     return new Intl.NumberFormat().format(Number(num));
   };
@@ -279,7 +280,7 @@ function InventoryTable({
                 <div className="bg-base-elevated ml-auto h-4 w-16 rounded" />
               </div>
               {assetType === 'token' && (
-                <div className={`${capacityColumnClass} hidden xl:block`}>
+                <div className={`${circulationColumnClass} hidden xl:block`}>
                   <div className="bg-base-elevated ml-auto h-4 w-16 rounded" />
                 </div>
               )}
@@ -329,7 +330,7 @@ function InventoryTable({
         {renderSortHeader('holders', 'Holders', mediumNumberColumnClass, 'right')}
         <div className="hidden xl:contents">
           {assetType === 'token' &&
-            renderSortHeader('supply', 'Circulation', capacityColumnClass, 'right')}
+            renderSortHeader('supply', 'Circulation', circulationColumnClass, 'right')}
           <div className={`${capacityColumnClass} flex items-center justify-end gap-1`}>
             {renderSortHeader('hMultiplier', 'HMul', 'w-auto shrink-0', 'right')}
             <HMulHelpPopover align="end" />
@@ -406,7 +407,7 @@ function InventoryTable({
             </div>
             {assetType === 'token' && (
               <div
-                className={`${capacityColumnClass} text-text-bright hidden font-mono tabular-nums xl:block`}
+                className={`${circulationColumnClass} text-text-bright hidden font-mono tabular-nums xl:block`}
               >
                 {(() => {
                   // `decimals: null` means unknown (no label, no on-chain info

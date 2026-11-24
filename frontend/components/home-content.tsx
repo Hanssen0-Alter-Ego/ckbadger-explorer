@@ -17,6 +17,7 @@ import { useRealtimeData } from '@/hooks/useRealtimeStore';
 import { useHomeScrollStore } from '@/hooks/useHomeScrollStore';
 import { api, NetworkStats, Block, Transaction, ChartResponse } from '@/lib/api';
 import { useEffect, useRef } from 'react';
+import { useParams } from '@/src/navigation';
 
 interface InitialData {
   stats: NetworkStats | null;
@@ -31,6 +32,7 @@ interface HomeContentProps {
 }
 
 export function HomeContent({ initialData }: HomeContentProps) {
+  const { network } = useParams<{ network?: string }>();
   const { isConnected } = useRealtimeData();
   const setHeroVisible = useHomeScrollStore((s) => s.setHeroVisible);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -57,8 +59,11 @@ export function HomeContent({ initialData }: HomeContentProps) {
   });
 
   return (
-    <main className="py-4 sm:py-6">
+    <main id="main-content" tabIndex={-1} className="scroll-mt-24 py-4 sm:py-6">
       <div className="container mx-auto px-4">
+        <h1 className="text-text-bright text-xl font-semibold tracking-tight sm:text-2xl">
+          CKB {network === 'testnet' ? 'Testnet' : 'Mainnet'} Explorer
+        </h1>
         {stats && <SyncBanner stats={stats} />}
 
         {/* Row 1: Network Charts (Latest Block + Hash Rate) */}

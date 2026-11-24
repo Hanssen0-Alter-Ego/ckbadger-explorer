@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '../utils/test-utils';
+import { fireEvent, render, screen, within } from '../utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { Header } from '@/components/layout/header';
 import { useHomeScrollStore } from '@/hooks/useHomeScrollStore';
 
@@ -67,6 +68,7 @@ describe('Header', () => {
       'href',
       '/mainnet/activities'
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Inventory' }));
     expect(screen.getAllByRole('link', { name: 'Tokens' }).at(0)).toHaveAttribute(
       'href',
       '/mainnet/inventory/tokens'
@@ -100,15 +102,53 @@ describe('Header', () => {
 
     expect(screen.getAllByRole('link', { name: 'DAO' })).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: 'Activities' })).toHaveLength(2);
-    expect(screen.getAllByRole('link', { name: 'Tokens' })).toHaveLength(2);
-    expect(screen.getAllByRole('link', { name: 'Objects' })).toHaveLength(2);
-    expect(screen.getAllByRole('link', { name: 'Identities' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Tokens' })).toHaveLength(1);
+    expect(screen.getAllByRole('link', { name: 'Objects' })).toHaveLength(1);
+    expect(screen.getAllByRole('link', { name: 'Identities' })).toHaveLength(1);
     expect(screen.queryByRole('link', { name: 'Fiber' })).not.toBeInTheDocument();
     expect(searchBarMock.mock.calls.every(([props]) => props.variant === 'compact')).toBe(true);
 
     fireEvent.click(toggleMenu);
 
     expect(screen.getAllByRole('link', { name: 'DAO' })).toHaveLength(1);
+  });
+
+  it('opens Inventory explicitly with the keyboard, tabs into links, and restores focus on Escape', async () => {
+    usePathnameMock.mockReturnValue('/inventory/tokens');
+    const user = userEvent.setup();
+    render(<Header />);
+    const inventory = screen.getByRole('button', { name: 'Inventory' });
+    expect(inventory).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('link', { name: 'Tokens' })).not.toBeInTheDocument();
+    inventory.focus();
+    await user.keyboard('{Enter}');
+    expect(inventory).toHaveAttribute('aria-expanded', 'true');
+    await user.tab();
+    const tokens = screen.getByRole('link', { name: 'Tokens' });
+    expect(tokens).toHaveFocus();
+    expect(tokens).toHaveAttribute('aria-current', 'page');
+    await user.keyboard('{Escape}');
+    expect(inventory).toHaveFocus();
+    expect(inventory).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('link', { name: 'Tokens' })).not.toBeInTheDocument();
+  });
+
+  it('focuses the mobile navigation and returns to the toggle on Escape', async () => {
+    usePathnameMock.mockReturnValue('/');
+    const user = userEvent.setup();
+    render(<Header />);
+    const toggle = screen.getByRole('button', { name: 'Toggle menu' });
+    toggle.focus();
+    await user.keyboard(' ');
+    const nav = screen.getByRole('navigation', { name: 'Mobile primary' });
+    expect(toggle).toHaveAttribute('aria-controls', nav.id);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(nav.querySelector('a')).toHaveFocus();
+    expect(nav.parentElement).toHaveClass('overflow-y-auto');
+    await user.keyboard('{Escape}');
+    expect(toggle).toHaveFocus();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('navigation', { name: 'Mobile primary' })).not.toBeInTheDocument();
   });
 
   it('separates the network context selector from navbar links', () => {
@@ -119,7 +159,9 @@ describe('Header', () => {
     };
     render(<Header />);
 
-    const switcher = screen.getByTestId('network-switcher');
+    const switcher = within(screen.getByRole('navigation', { name: 'Primary' })).getByTestId(
+      'network-switcher'
+    );
     const daoLink = screen.getAllByRole('link', { name: 'DAO' })[0];
 
     expect(switcher).toHaveAttribute('data-control', 'network-context');

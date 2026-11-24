@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '../utils/test-utils';
+import { fireEvent, render, screen, waitFor, within } from '../utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { api } from '@/lib/api';
 
 const SHARED_PLACEHOLDER = 'Search block / tx / address / cell ...';
@@ -37,15 +38,30 @@ describe('SearchBar', () => {
     vi.mocked(api.search).mockResolvedValue({
       query: '12',
       results: [
-        { resultType: 'block', id: '12', label: 'Block #12', url: '/blocks/12' },
+        {
+          resultType: 'block',
+          id: '12',
+          label: 'Block #12',
+          url: '/blocks/12',
+        },
         {
           resultType: 'transaction',
           id: '0xabc',
           label: 'Transaction 0xabc',
           url: '/tx/0xabc',
         },
-        { resultType: 'address', id: 'ckb1xyz', label: 'Address ckb1xyz', url: '/address/ckb1xyz' },
-        { resultType: 'cell', id: '0xdef-0', label: 'Cell 0xdef:0', url: '/cell/0xdef-0' },
+        {
+          resultType: 'address',
+          id: 'ckb1xyz',
+          label: 'Address ckb1xyz',
+          url: '/address/ckb1xyz',
+        },
+        {
+          resultType: 'cell',
+          id: '0xdef-0',
+          label: 'Cell 0xdef:0',
+          url: '/cell/0xdef-0',
+        },
       ],
     });
   });
@@ -70,57 +86,86 @@ describe('SearchBar', () => {
     expect(screen.queryByRole('button', { name: 'Search' })).not.toBeInTheDocument();
   });
 
-  it('updates the compact command-line preview as the query changes', () => {
+  it('keeps the compact query and caret in a native input on a long address', async () => {
+    vi.mocked(api.search).mockImplementation(() => new Promise(() => {}));
     render(<SearchBar variant="compact" />);
+    const input = screen.getByRole<HTMLInputElement>('combobox', {
+      name: 'Search the CKB explorer',
+    });
+    const address = 'ckb1' + 'abcd'.repeat(25);
+    const user = userEvent.setup();
+    await user.click(input);
+    fireEvent.change(input, { target: { value: address } });
+    await user.keyboard('{End}');
 
-    const input = screen.getByPlaceholderText(SHARED_PLACEHOLDER);
-    fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: '0xabc123' } });
-
-    const commandText = screen.getByTestId('compact-search-command-text');
-    const commandCursor = screen.getByTestId('compact-search-cursor');
-
-    expect(commandText).toHaveTextContent('0xabc123');
-    expect(commandText).not.toHaveTextContent(SHARED_PLACEHOLDER);
-    expect(commandText).not.toHaveTextContent('[/?]');
-    expect(commandCursor).toBeInTheDocument();
+    expect(input).toHaveValue(address);
+    expect(input.selectionStart).toBe(address.length);
+    expect(input).not.toHaveClass('text-transparent', 'caret-transparent');
+    expect(screen.queryByTestId('compact-search-command-line')).not.toBeInTheDocument();
   });
 
-  it('only shows the compact fake caret while the input is focused', () => {
-    render(<SearchBar variant="compact" />);
+  it('keeps keyboard focus in the combobox, exposing and clearing the active option correctly', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <SearchBar />
+        <button type="button">After search</button>
+      </>
+    );
+    const input = screen.getByRole('combobox', {
+      name: 'Search the CKB explorer',
+    });
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    await user.type(input, '12');
+    const options = await screen.findByRole('listbox', {
+      name: 'Search results',
+    });
+    const block = within(options).getByRole('option', { name: /Block #12/ });
+    const tx = within(options).getByRole('option', {
+      name: /Transaction 0xabc/,
+    });
+    expect(input).toHaveAttribute('aria-controls', options.id);
 
-    const input = screen.getByPlaceholderText(SHARED_PLACEHOLDER);
+    await user.keyboard('{ArrowDown}');
+    expect(input).toHaveFocus();
+    expect(input).toHaveAttribute('aria-activedescendant', block.id);
+    expect(block).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{ArrowDown}');
+    expect(input).toHaveAttribute('aria-activedescendant', tx.id);
+    expect(block).toHaveAttribute('aria-selected', 'false');
+    await user.keyboard('{Escape}');
+    expect(input).toHaveFocus();
+    expect(input).not.toHaveAttribute('aria-activedescendant');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
-    expect(screen.queryByTestId('compact-search-cursor')).not.toBeInTheDocument();
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+    expect(pushMock).toHaveBeenCalledWith('/tx/0xabc');
 
-    fireEvent.focus(input);
-    expect(screen.getByTestId('compact-search-cursor')).toBeInTheDocument();
-
-    fireEvent.blur(input);
-    expect(screen.queryByTestId('compact-search-cursor')).not.toBeInTheDocument();
+    await user.type(input, '12');
+    await screen.findByRole('listbox');
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'After search' })).toHaveFocus();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
-  it('moves the compact fake caret with the input selection', () => {
-    vi.mocked(api.search).mockImplementationOnce(() => new Promise(() => {}));
+  it('still selects an option by pointer without blurring the input before click', async () => {
+    const user = userEvent.setup();
+    render(<SearchBar />);
+    await user.type(screen.getByRole('combobox'), '12');
+    await user.click(await screen.findByRole('option', { name: /Transaction 0xabc/ }));
+    expect(pushMock).toHaveBeenCalledWith('/tx/0xabc');
+  });
 
-    render(<SearchBar variant="compact" />);
-
-    const input = screen.getByPlaceholderText(SHARED_PLACEHOLDER) as HTMLInputElement;
-    act(() => {
-      fireEvent.focus(input);
-      fireEvent.change(input, { target: { value: '0xabc123' } });
-    });
-
-    expect(screen.getByTestId('compact-search-text-before-cursor')).toHaveTextContent('0xabc123');
-    expect(screen.getByTestId('compact-search-text-after-cursor')).toHaveTextContent('');
-
-    act(() => {
-      input.setSelectionRange(4, 4);
-      fireEvent.select(input);
-    });
-
-    expect(screen.getByTestId('compact-search-text-before-cursor')).toHaveTextContent('0xab');
-    expect(screen.getByTestId('compact-search-text-after-cursor')).toHaveTextContent('c123');
+  it('distinguishes an unavailable search from a completed empty result', async () => {
+    vi.mocked(api.search).mockRejectedValueOnce(new Error('Service unavailable'));
+    render(<SearchBar />);
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: '12' } });
+    expect(await screen.findByRole('status')).toHaveTextContent(/Searching|Search is unavailable/);
+    await screen.findByText(/Search is unavailable right now/);
+    fireEvent.submit(input.closest('form')!);
+    expect(screen.queryByText(/no (matches|results)/i)).not.toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it('renders semantic icons for different search result types', async () => {
@@ -160,7 +205,14 @@ describe('SearchBar', () => {
   it('navigates immediately when exactly one result is returned on submit', async () => {
     vi.mocked(api.search).mockResolvedValueOnce({
       query: 'alpha',
-      results: [{ resultType: 'script', id: '0xabc', label: 'Script Alpha', url: '/script/0xabc' }],
+      results: [
+        {
+          resultType: 'script',
+          id: '0xabc',
+          label: 'Script Alpha',
+          url: '/script/0xabc',
+        },
+      ],
     });
 
     render(<SearchBar />);

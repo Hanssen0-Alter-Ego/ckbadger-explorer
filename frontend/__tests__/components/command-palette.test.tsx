@@ -21,6 +21,20 @@ import { CommandPalette } from '@/components/command-palette';
 
 describe('CommandPalette', () => {
   beforeEach(() => {
+    Object.defineProperties(HTMLDialogElement.prototype, {
+      showModal: {
+        configurable: true,
+        value(this: HTMLDialogElement) {
+          this.open = true;
+        },
+      },
+      close: {
+        configurable: true,
+        value(this: HTMLDialogElement) {
+          this.open = false;
+        },
+      },
+    });
     pushMock.mockReset();
   });
 
@@ -172,6 +186,52 @@ describe('CommandPalette', () => {
     fireEvent.keyDown(window, { key: 'f' });
 
     expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('opens a labeled modal, exposes the active command, and restores focus on Escape/cancel', () => {
+    render(
+      <>
+        <button type="button">Original control</button>
+        <CommandPalette />
+      </>
+    );
+    const origin = screen.getByRole('button', { name: 'Original control' });
+    origin.focus();
+    fireEvent.keyDown(origin, { key: 'k', ctrlKey: true });
+    const dialog = screen.getByRole('dialog', { name: 'Command palette' });
+    const input = screen.getByRole('combobox', {
+      name: 'Command palette input',
+    });
+    expect(dialog).toHaveAttribute('open');
+    expect(input).toHaveFocus();
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    const blocks = screen.getByRole('option', {
+      name: 'Go to Blocks',
+      selected: true,
+    });
+    expect(input).toHaveAttribute('aria-activedescendant', blocks.id);
+    // Native Escape dispatches the cancel event; jsdom does not synthesize it.
+    fireEvent(dialog, new Event('cancel', { cancelable: true }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(origin).toHaveFocus();
+  });
+
+  it('focuses the close control in help and returns focus on closing', () => {
+    render(
+      <>
+        <button type="button">Original control</button>
+        <CommandPalette />
+      </>
+    );
+    const origin = screen.getByRole('button', { name: 'Original control' });
+    origin.focus();
+    fireEvent.keyDown(origin, { key: '?' });
+    expect(screen.getByRole('dialog', { name: 'Keyboard Shortcuts' })).toBeInTheDocument();
+    const close = screen.getByRole('button', { name: 'Close' });
+    expect(close).toHaveFocus();
+    fireEvent.click(close);
+    expect(origin).toHaveFocus();
   });
 
   it('opens shortcut help panel with question mark', () => {

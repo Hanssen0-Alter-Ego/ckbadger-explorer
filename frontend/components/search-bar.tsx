@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useId, useMemo, useRef } from 'react';
 import { useRouter } from '@/src/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api, type SearchResult } from '@/lib/api';
@@ -19,14 +19,18 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [compactCaretIndex, setCompactCaretIndex] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [submitFeedback, setSubmitFeedback] = useState<string | null>(null);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data: searchResults, isLoading } = useQuery({
+  const {
+    data: searchResults,
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: ['search', query],
     queryFn: () => api.search(query),
     enabled: query.length >= 2,
@@ -35,9 +39,20 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
 
   const results = useMemo(() => searchResults?.results ?? [], [searchResults?.results]);
 
+  const showDropdown = isOpen && query.trim().length >= 2;
+  const showOptions = showDropdown && !isLoading && !isError && results.length > 0;
+  const activeOptionId =
+    showOptions && results[selectedIndex] ? listboxId + '-option-' + selectedIndex : undefined;
+
   useEffect(() => {
     setSelectedIndex(-1);
   }, [results]);
+
+  useEffect(() => {
+    if (activeOptionId) {
+      document.getElementById(activeOptionId)?.scrollIntoView?.({ block: 'nearest' });
+    }
+  }, [activeOptionId]);
 
   useEffect(() => {
     setSubmitFeedback(null);
@@ -52,6 +67,7 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
         !inputRef.current.contains(e.target as Node)
       ) {
         setIsOpen(false);
+        setSelectedIndex(-1);
       }
     };
 
@@ -59,19 +75,10 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const syncCompactCaretPosition = (target?: HTMLInputElement | null) => {
-    if (!target) {
-      return;
-    }
-
-    setCompactCaretIndex(target.selectionStart ?? target.value.length);
-  };
-
   const resetSearchState = () => {
     setIsOpen(false);
     setIsInputFocused(false);
     setQuery('');
-    setCompactCaretIndex(0);
     setSubmitFeedback(null);
   };
 
@@ -80,14 +87,21 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
     const trimmed = query.trim();
     if (!trimmed) return;
 
-    if (selectedIndex >= 0 && results[selectedIndex]) {
+    if (activeOptionId) {
       router.push(results[selectedIndex].url);
       resetSearchState();
       return;
     }
 
     if (isLoading) {
-      setSubmitFeedback('Searching...');
+      setSubmitFeedback(null);
+      setIsOpen(true);
+      return;
+    }
+
+    if (isError && trimmed.length >= 2) {
+      setSubmitFeedback(null);
+      setIsOpen(true);
       return;
     }
 
@@ -125,16 +139,33 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
     setSubmitFeedback('No matches found.');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
+  const closeSuggestions = () => {
+    setIsOpen(false);
+    setSelectedIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
+
+    if (
+      (e.key === 'ArrowDown' || e.key === 'ArrowUp') &&
+      query.trim().length >= 2 &&
+      !isLoading &&
+      !isError &&
+      results.length > 0
+    ) {
       e.preventDefault();
-      setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1));
-    } else if (e.key === 'ArrowUp') {
+      setIsOpen(true);
+      setSelectedIndex((prev) =>
+        e.key === 'ArrowDown'
+          ? Math.min(prev + 1, results.length - 1)
+          : prev < 0
+            ? results.length - 1
+            : prev - 1
+      );
+    } else if (e.key === 'Escape' && showDropdown) {
       e.preventDefault();
-      setSelectedIndex((prev) => Math.max(prev - 1, -1));
-    } else if (e.key === 'Escape') {
-      setIsOpen(false);
-      setIsInputFocused(false);
+      closeSuggestions();
     }
   };
 
@@ -145,10 +176,6 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
 
   const isCompact = variant === 'compact';
   const isHome = variant === 'home';
-  const compactVisibleText = query || SEARCH_PLACEHOLDER;
-  const compactCaretPosition = query ? compactCaretIndex : 0;
-  const compactTextBeforeCursor = compactVisibleText.slice(0, compactCaretPosition);
-  const compactTextAfterCursor = compactVisibleText.slice(compactCaretPosition);
   const showShortcutHints = isHome || isCompact;
 
   return (
@@ -163,70 +190,55 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
         >
           {isCompact && (
             <span
+              aria-hidden="true"
               data-testid="compact-search-prompt"
               className="text-jade/70 pointer-events-none absolute inset-y-0 left-0 z-10 flex w-4 items-center justify-start font-mono text-[11px]"
             >
               &gt;
             </span>
           )}
-          {isCompact && (
-            <span
-              data-testid="compact-search-command-line"
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-4 right-14 z-10 flex items-center overflow-hidden"
-            >
-              <span
-                data-testid="compact-search-command-text"
-                className={cn(
-                  'min-w-0 truncate whitespace-nowrap font-mono text-[13px] tracking-[0.015em]',
-                  query ? 'text-jade/95' : 'text-text-dim/40'
-                )}
-              >
-                <span data-testid="compact-search-text-before-cursor">
-                  {compactTextBeforeCursor}
-                </span>
-                {isInputFocused && (
-                  <span
-                    data-testid="compact-search-cursor"
-                    className="bg-jade/90 animate-blink-cursor inline-block h-[1.05em] w-[7px] shrink-0 align-[-0.12em]"
-                  />
-                )}
-                <span data-testid="compact-search-text-after-cursor">{compactTextAfterCursor}</span>
-              </span>
-            </span>
-          )}
           <input
             ref={inputRef}
             data-ckbadger-global-search="true"
             type="text"
+            role="combobox"
+            aria-label="Search the CKB explorer"
+            aria-autocomplete="list"
+            aria-expanded={showOptions}
+            aria-controls={showOptions ? listboxId : undefined}
+            aria-activedescendant={activeOptionId}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              syncCompactCaretPosition(e.target);
               setSelectedIndex(-1);
               setIsOpen(true);
             }}
-            onFocus={(e) => {
+            onFocus={() => {
               setIsOpen(true);
               setIsInputFocused(true);
-              syncCompactCaretPosition(e.target);
             }}
-            onBlur={() => setIsInputFocused(false)}
-            onClick={(e) => syncCompactCaretPosition(e.currentTarget)}
+            onBlur={() => {
+              setIsInputFocused(false);
+              closeSuggestions();
+            }}
+            onClick={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
-            onKeyUp={(e) => syncCompactCaretPosition(e.currentTarget)}
-            onSelect={(e) => syncCompactCaretPosition(e.currentTarget)}
             placeholder={SEARCH_PLACEHOLDER}
             className={cn(
               'text-text-bright w-full font-mono transition-colors focus:outline-none',
               isHome
                 ? 'border-base-border border-jade/50 focus:ring-jade/25 bg-base-surface/95 placeholder:text-text-dim focus:border-jade h-10 rounded-xl border pl-4 pr-20 text-sm shadow-[0_0_0_1px_rgba(46,219,163,0.18),0_6px_20px_rgba(46,219,163,0.18)] focus:ring-2 sm:pr-28'
                 : isCompact
-                  ? 'border-jade/18 focus:border-jade/42 h-8 rounded-none border-0 border-b bg-transparent pl-0 pr-14 text-[13px] tracking-[0.015em] text-transparent caret-transparent shadow-none placeholder:text-transparent focus:border-0 focus:border-b focus:ring-0'
+                  ? cn(
+                      'border-jade/18 focus:border-jade/42 h-8 rounded-none border-0 border-b bg-transparent pl-4 pr-2 text-[13px] tracking-[0.015em] caret-jade shadow-none placeholder:text-text-dim focus:border-0 focus:border-b focus:ring-0 focus-visible:border-interactive',
+                      !isInputFocused && !query && 'sm:pr-14'
+                    )
                   : 'border-base-border bg-base-surface placeholder:text-text-dim focus:border-jade focus:ring-jade rounded-lg border px-3 py-2.5 pr-3 text-sm focus:ring-1 sm:px-4 sm:py-3 sm:text-base'
             )}
           />
-          {showShortcutHints && <SearchShortcutHints variant={isCompact ? 'compact' : 'home'} />}
+          {showShortcutHints && (!isCompact || (!isInputFocused && !query)) && (
+            <SearchShortcutHints variant={isCompact ? 'compact' : 'home'} />
+          )}
           {isHome && isInputFocused && (
             <>
               <span
@@ -250,7 +262,7 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
         </div>
       )}
 
-      {isOpen && query.trim().length >= 2 && (
+      {showDropdown && (
         <div
           ref={dropdownRef}
           data-testid="search-results-dropdown"
@@ -262,39 +274,54 @@ export function SearchBar({ className, variant = 'default' }: SearchBarProps) {
           )}
         >
           {isLoading ? (
-            <div className="text-text-dim px-4 py-3">Searching...</div>
+            <div className="text-text-dim px-4 py-3" role="status">
+              Searching...
+            </div>
+          ) : isError ? (
+            <div className="text-text-dim px-4 py-3" role="status">
+              Search is unavailable right now. Try again in a moment.
+            </div>
           ) : results.length > 0 ? (
-            <ul className="max-h-80 overflow-auto py-1">
+            <ul
+              id={listboxId}
+              role="listbox"
+              aria-label="Search results"
+              className="max-h-80 overflow-auto py-1"
+            >
               {results.map((result, index) => (
-                <li key={`${result.resultType}-${result.id}`}>
-                  <button
-                    type="button"
-                    onClick={() => handleResultClick(result)}
-                    className={cn(
-                      'flex w-full items-center gap-3 px-4 py-2 text-left transition-colors',
-                      isCompact
-                        ? selectedIndex === index
-                          ? 'text-jade bg-[#091217]'
-                          : 'text-text hover:bg-[#070e13]'
-                        : selectedIndex === index
-                          ? 'text-jade bg-base-elevated'
-                          : 'text-text hover:bg-base-elevated/50'
-                    )}
-                  >
-                    <SearchResultIcon type={result.resultType} />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{result.label}</div>
-                      <div className="text-text-dim truncate font-mono text-xs">{result.id}</div>
-                    </div>
-                    <span className="bg-base-elevated text-text-dim shrink-0 rounded px-2 py-0.5 font-mono text-xs">
-                      {result.resultType}
-                    </span>
-                  </button>
+                <li
+                  key={result.resultType + '-' + result.id}
+                  id={listboxId + '-option-' + index}
+                  role="option"
+                  aria-selected={selectedIndex === index}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => handleResultClick(result)}
+                  className={cn(
+                    'flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-left transition-colors',
+                    isCompact
+                      ? selectedIndex === index
+                        ? 'text-jade bg-[#091217]'
+                        : 'text-text hover:bg-[#070e13]'
+                      : selectedIndex === index
+                        ? 'text-jade bg-base-elevated'
+                        : 'text-text hover:bg-base-elevated/50'
+                  )}
+                >
+                  <SearchResultIcon type={result.resultType} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{result.label}</div>
+                    <div className="text-text-dim truncate font-mono text-xs">{result.id}</div>
+                  </div>
+                  <span className="bg-base-elevated text-text-dim shrink-0 rounded px-2 py-0.5 font-mono text-xs">
+                    {result.resultType}
+                  </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="text-text-dim px-4 py-3">No results found</div>
+            <div className="text-text-dim px-4 py-3" role="status">
+              No results found
+            </div>
           )}
         </div>
       )}
@@ -307,10 +334,11 @@ function SearchShortcutHints({ variant }: { variant: 'compact' | 'home' }) {
 
   return (
     <div
+      aria-hidden="true"
       data-testid="search-shortcut-hints"
       className={cn(
         'pointer-events-none absolute inset-y-0 z-10 items-center gap-1',
-        isCompact ? 'right-0 flex' : 'right-3 hidden sm:flex'
+        isCompact ? 'right-0 hidden sm:flex' : 'right-3 hidden sm:flex'
       )}
     >
       <span

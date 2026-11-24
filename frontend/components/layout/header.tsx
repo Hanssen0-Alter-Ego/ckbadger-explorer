@@ -2,7 +2,7 @@
 
 import Link from '@/components/ui/link';
 import { usePathname } from '@/src/navigation';
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { CommandPalette } from '@/components/command-palette';
 import { SearchBar } from '@/components/search-bar';
 import { NetworkSwitcher } from '@/components/layout/network-switcher';
@@ -11,7 +11,6 @@ import {
   NAVBAR_DROPDOWN_ITEM_CLASS,
   NAVBAR_DROPDOWN_ITEM_DEFAULT_CLASS,
   NAVBAR_DROPDOWN_PANEL_CLASS,
-  NAVBAR_DROPDOWN_POPOVER_CLASS,
   NAVBAR_DROPDOWN_TRIGGER_ACTIVE_CLASS,
   NAVBAR_DROPDOWN_TRIGGER_CLASS,
   NAVBAR_DROPDOWN_TRIGGER_DEFAULT_CLASS,
@@ -55,8 +54,28 @@ const DESKTOP_START_COLUMN = 'hidden md:block md:w-[108px] md:shrink-0';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
+  const mobileNavId = useId();
+  const inventoryId = useId();
+  const mobileMenuRef = useRef<HTMLButtonElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
+  const inventoryRef = useRef<HTMLDivElement>(null);
+  const inventoryButtonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const isHomePage = pathname === '/';
+
+  useEffect(() => {
+    if (!isInventoryOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!inventoryRef.current?.contains(event.target as Node)) setIsInventoryOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [isInventoryOpen]);
+
+  useEffect(() => {
+    if (isMenuOpen) mobileNavRef.current?.querySelector('a')?.focus();
+  }, [isMenuOpen]);
   const isLinkActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const isDropdownActive = (item: NavDropdown) =>
     item.children.some((child) => isLinkActive(child.href));
@@ -77,7 +96,15 @@ export function Header() {
   })();
 
   return (
-    <header className="explorer-console border-base-border bg-base-bg/95 sticky top-0 z-40 mb-4 overflow-visible border-b backdrop-blur-sm">
+    <header
+      className="explorer-console border-base-border bg-base-bg/95 sticky top-0 z-40 mb-4 overflow-visible border-b backdrop-blur-sm"
+      onKeyDown={(event) => {
+        if (event.defaultPrevented || event.key !== 'Escape' || !isMenuOpen) return;
+        event.preventDefault();
+        setIsMenuOpen(false);
+        mobileMenuRef.current?.focus();
+      }}
+    >
       <div className="container relative mx-auto flex min-h-[56px] items-center gap-2 px-4 md:gap-3">
         <Link
           href="/"
@@ -104,9 +131,28 @@ export function Header() {
           <NetworkSwitcher />
           {navItems.map((item) =>
             isDropdown(item) ? (
-              <div key={item.label} className="group relative">
+              <div
+                key={item.label}
+                ref={inventoryRef}
+                className="relative"
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    setIsInventoryOpen(false);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Escape' || !isInventoryOpen) return;
+                  event.preventDefault();
+                  setIsInventoryOpen(false);
+                  inventoryButtonRef.current?.focus();
+                }}
+              >
                 <button
+                  ref={inventoryButtonRef}
                   type="button"
+                  aria-controls={inventoryId}
+                  aria-expanded={isInventoryOpen}
+                  onClick={() => setIsInventoryOpen((open) => !open)}
                   className={cn(
                     NAVBAR_DROPDOWN_TRIGGER_CLASS,
                     isDropdownActive(item)
@@ -117,6 +163,7 @@ export function Header() {
                   {item.label}
                   <svg
                     className="h-3 w-3 opacity-50"
+                    aria-hidden="true"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -129,12 +176,21 @@ export function Header() {
                     />
                   </svg>
                 </button>
-                <div className={NAVBAR_DROPDOWN_POPOVER_CLASS}>
+                <div
+                  id={inventoryId}
+                  hidden={!isInventoryOpen}
+                  className="absolute left-0 top-full pt-1"
+                >
                   <div className={NAVBAR_DROPDOWN_PANEL_CLASS}>
                     {item.children.map((child) => (
                       <Link
                         key={child.href}
                         href={child.href}
+                        aria-current={isLinkActive(child.href) ? 'page' : undefined}
+                        onClick={() => {
+                          setIsInventoryOpen(false);
+                          inventoryButtonRef.current?.focus();
+                        }}
                         className={cn(
                           NAVBAR_DROPDOWN_ITEM_CLASS,
                           isLinkActive(child.href)
@@ -166,12 +222,13 @@ export function Header() {
 
         <div className="flex items-center gap-2 md:hidden">
           <button
+            ref={mobileMenuRef}
             type="button"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={() => setIsMenuOpen((open) => !open)}
             className="text-text-dim hover:text-interactive hover:bg-base-elevated flex h-11 w-11 items-center justify-center rounded-lg transition-colors"
             aria-label="Toggle menu"
             aria-expanded={isMenuOpen}
-            aria-controls="explorer-mobile-navigation"
+            aria-controls={mobileNavId}
           >
             {isMenuOpen ? (
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -222,74 +279,76 @@ export function Header() {
         </div>
       </div>
 
-      {isMenuOpen && (
-        <div className="border-base-border bg-base-bg/95 absolute z-50 w-full border-t shadow-xl backdrop-blur-sm md:hidden">
-          <nav
-            id="explorer-mobile-navigation"
-            aria-label="Primary"
-            className="container mx-auto px-4 py-4"
-          >
-            <div className="flex flex-col gap-1">
-              <Link
-                href="/"
-                onClick={() => setIsMenuOpen(false)}
-                className={`block rounded-md border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.12em] transition ${
-                  pathname === '/'
-                    ? 'border-jade/40 bg-jade/8 text-jade'
-                    : 'text-text hover:text-jade hover:border-jade/20 border-transparent'
-                }`}
-              >
-                Home
-              </Link>
-              <NetworkSwitcher className="mb-1 w-full" onSwitch={() => setIsMenuOpen(false)} />
-              {navItems.map((item) =>
-                isDropdown(item) ? (
-                  <div key={item.label} className="flex flex-col">
-                    <span
-                      className={`block rounded-md border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.12em] ${
-                        isDropdownActive(item)
-                          ? 'border-jade/40 bg-jade/8 text-jade'
-                          : 'text-text border-transparent'
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                    <div className="border-base-border/40 ml-3 flex flex-col gap-1 border-l pl-3 pt-1">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          onClick={() => setIsMenuOpen(false)}
-                          className={`block rounded-md px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
-                            isLinkActive(child.href)
-                              ? 'text-jade bg-jade/8'
-                              : 'text-text-dim hover:text-jade'
-                          }`}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`block rounded-md border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.12em] transition ${
-                      isLinkActive(item.href)
+      <div
+        hidden={!isMenuOpen}
+        className="border-base-border bg-base-bg/95 absolute z-50 max-h-[calc(100dvh_-_5.5rem)] w-full overflow-y-auto overscroll-contain border-t shadow-xl backdrop-blur-sm md:hidden"
+      >
+        <nav
+          id={mobileNavId}
+          ref={mobileNavRef}
+          aria-label="Mobile primary"
+          className="container mx-auto px-4 py-4"
+        >
+          <div className="flex flex-col gap-1">
+            <Link
+              href="/"
+              onClick={() => setIsMenuOpen(false)}
+              className={`block rounded-md border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.12em] transition ${
+                pathname === '/'
+                  ? 'border-jade/40 bg-jade/8 text-jade'
+                  : 'text-text hover:text-jade hover:border-jade/20 border-transparent'
+              }`}
+            >
+              Home
+            </Link>
+            <NetworkSwitcher className="mb-1 w-full" onSwitch={() => setIsMenuOpen(false)} />
+            {navItems.map((item) =>
+              isDropdown(item) ? (
+                <div key={item.label} className="flex flex-col">
+                  <span
+                    className={`block rounded-md border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.12em] ${
+                      isDropdownActive(item)
                         ? 'border-jade/40 bg-jade/8 text-jade'
-                        : 'text-text hover:text-jade hover:border-jade/20 border-transparent'
+                        : 'text-text border-transparent'
                     }`}
                   >
                     {item.label}
-                  </Link>
-                )
-              )}
-            </div>
-          </nav>
-        </div>
-      )}
+                  </span>
+                  <div className="border-base-border/40 ml-3 flex flex-col gap-1 border-l pl-3 pt-1">
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`block rounded-md px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
+                          isLinkActive(child.href)
+                            ? 'text-jade bg-jade/8'
+                            : 'text-text-dim hover:text-jade'
+                        }`}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block rounded-md border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.12em] transition ${
+                    isLinkActive(item.href)
+                      ? 'border-jade/40 bg-jade/8 text-jade'
+                      : 'text-text hover:text-jade hover:border-jade/20 border-transparent'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            )}
+          </div>
+        </nav>
+      </div>
 
       <CommandPalette />
     </header>

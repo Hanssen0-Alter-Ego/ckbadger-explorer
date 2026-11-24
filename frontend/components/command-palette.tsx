@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useRouter } from '@/src/navigation';
 import { focusGlobalSearchInput, isEditableElement } from '@/lib/search-focus';
 import { resolveSearchRoute } from '@/lib/search-routing';
@@ -18,8 +18,18 @@ interface ShortcutHint {
 }
 
 const COMMANDS: CommandItem[] = [
-  { id: 'go-home', label: 'Go to Home', keywords: ['home', 'index'], href: '/' },
-  { id: 'go-blocks', label: 'Go to Blocks', keywords: ['block', 'blocks'], href: '/blocks' },
+  {
+    id: 'go-home',
+    label: 'Go to Home',
+    keywords: ['home', 'index'],
+    href: '/',
+  },
+  {
+    id: 'go-blocks',
+    label: 'Go to Blocks',
+    keywords: ['block', 'blocks'],
+    href: '/blocks',
+  },
   {
     id: 'go-transactions',
     label: 'Go to Transactions',
@@ -32,7 +42,12 @@ const COMMANDS: CommandItem[] = [
     keywords: ['activity', 'activities'],
     href: '/activities',
   },
-  { id: 'go-dao', label: 'Go to DAO', keywords: ['dao', 'deposit'], href: '/dao' },
+  {
+    id: 'go-dao',
+    label: 'Go to DAO',
+    keywords: ['dao', 'deposit'],
+    href: '/dao',
+  },
   {
     id: 'go-inventory-tokens',
     label: 'Go to Tokens',
@@ -63,8 +78,18 @@ const COMMANDS: CommandItem[] = [
     keywords: ['fiber', 'channel', 'channels', 'payment'],
     href: '/fiber/channels',
   },
-  { id: 'go-scripts', label: 'Go to Scripts', keywords: ['script'], href: '/scripts' },
-  { id: 'go-charts', label: 'Go to Charts', keywords: ['chart', 'stats'], href: '/charts' },
+  {
+    id: 'go-scripts',
+    label: 'Go to Scripts',
+    keywords: ['script'],
+    href: '/scripts',
+  },
+  {
+    id: 'go-charts',
+    label: 'Go to Charts',
+    keywords: ['chart', 'stats'],
+    href: '/charts',
+  },
   {
     id: 'go-hardforks',
     label: 'Go to Hardforks',
@@ -121,6 +146,11 @@ function matchesCommand(command: CommandItem, query: string): boolean {
 
 export function CommandPalette() {
   const router = useRouter();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const listboxId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<PaletteMode>('commands');
@@ -136,22 +166,35 @@ export function CommandPalette() {
     [normalizedQuery]
   );
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setSelectedIndex(0);
-  }, [matchingCommands.length, isOpen]);
+  const activeOption = matchingCommands[selectedIndex];
+  const activeOptionId = activeOption ? listboxId + '-' + activeOption.id : undefined;
 
   useEffect(() => {
-    if (!isOpen) return;
-    if (mode !== 'commands') return;
-    inputRef.current?.focus();
-    inputRef.current?.select();
+    const dialog = dialogRef.current;
+    if (!isOpen || !dialog) return;
+    if (!dialog.open) dialog.showModal();
+    if (mode === 'commands') {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    } else {
+      closeButtonRef.current?.focus();
+    }
   }, [isOpen, mode]);
 
+  useEffect(() => {
+    if (activeOptionId) {
+      document.getElementById(activeOptionId)?.scrollIntoView?.({ block: 'nearest' });
+    }
+  }, [activeOptionId]);
+
   const closePalette = () => {
+    dialogRef.current?.close();
+    if (triggerRef.current?.isConnected) triggerRef.current.focus({ preventScroll: true });
+    triggerRef.current = null;
     setIsOpen(false);
     setMode('commands');
     setQuery('');
+    setSelectedIndex(0);
   };
 
   useEffect(() => {
@@ -164,6 +207,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing) return;
       const isEditable = isEditableElement(event.target);
       const isMetaOrCtrl = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
@@ -171,14 +215,12 @@ export function CommandPalette() {
       if (isMetaOrCtrl && !event.altKey && key === 'k') {
         event.preventDefault();
         setIsGotoChordActive(false);
+        if (!isOpen) {
+          const focused = document.activeElement;
+          triggerRef.current = focused instanceof HTMLElement ? focused : null;
+        }
         setMode('commands');
         setIsOpen(true);
-        return;
-      }
-
-      if (event.key === 'Escape' && isOpen) {
-        event.preventDefault();
-        closePalette();
         return;
       }
 
@@ -196,6 +238,8 @@ export function CommandPalette() {
           window.clearTimeout(gotoTimerRef.current);
           gotoTimerRef.current = null;
         }
+        const focused = document.activeElement;
+        triggerRef.current = focused instanceof HTMLElement ? focused : null;
         setQuery('');
         setMode('shortcuts');
         setIsOpen(true);
@@ -286,6 +330,7 @@ export function CommandPalette() {
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       if (matchingCommands.length === 0) return;
@@ -305,96 +350,119 @@ export function CommandPalette() {
       execute();
       return;
     }
-
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      closePalette();
-    }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div
-      className="bg-base-bg/70 fixed inset-0 z-[100] flex items-start justify-center px-4 pt-[12vh]"
-      onClick={closePalette}
-      role="presentation"
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={titleId}
+      className="border-base-border bg-base-surface text-text inset-x-0 top-[min(12vh,4rem)] m-0 mx-auto max-h-[82dvh] w-[calc(100%_-_2rem)] max-w-2xl overflow-auto rounded-xl border shadow-2xl backdrop:bg-base-bg/70"
+      onCancel={(event) => {
+        event.preventDefault();
+        closePalette();
+      }}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        const { left, right, top, bottom } = event.currentTarget.getBoundingClientRect();
+        if (
+          event.clientX < left ||
+          event.clientX > right ||
+          event.clientY < top ||
+          event.clientY > bottom
+        ) {
+          closePalette();
+        }
+      }}
     >
-      <div
-        className="border-base-border bg-base-surface w-full max-w-2xl rounded-xl border shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        {mode === 'commands' ? (
-          <>
-            <div className="border-base-border border-b p-3">
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={handleInputKeyDown}
-                placeholder="Type a command, or search block / tx / address"
-                className="focus:border-jade focus:ring-jade border-base-border bg-base-bg text-text-bright w-full rounded-md border px-3 py-2 font-mono text-sm outline-none focus:ring-1"
-                aria-label="Command palette input"
-              />
-            </div>
+      <header className="border-base-border flex items-center justify-between gap-2 border-b px-4 py-2">
+        <h2 id={titleId} className="text-text-bright font-mono text-sm uppercase tracking-wide">
+          {mode === 'commands' ? 'Command palette' : 'Keyboard Shortcuts'}
+        </h2>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          className="text-text hover:text-interactive min-h-8 rounded px-2 font-mono text-xs"
+          onClick={closePalette}
+        >
+          Close
+        </button>
+      </header>
+      {mode === 'commands' ? (
+        <>
+          <div className="border-base-border border-b p-3">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={matchingCommands.length > 0}
+              aria-controls={matchingCommands.length > 0 ? listboxId : undefined}
+              aria-activedescendant={activeOptionId}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setSelectedIndex(0);
+              }}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Type a command, or search block / tx / address"
+              className="focus:border-jade focus:ring-jade border-base-border bg-base-bg text-text-bright w-full rounded-md border px-3 py-2 font-mono text-sm outline-none focus:ring-1"
+              aria-label="Command palette input"
+            />
+          </div>
 
-            <div className="max-h-[360px] overflow-auto p-2">
-              {matchingCommands.length > 0 ? (
-                <ul className="space-y-1">
-                  {matchingCommands.map((command, index) => (
-                    <li key={command.id}>
-                      <button
-                        type="button"
-                        className={`w-full rounded-md px-3 py-2 text-left font-mono text-sm transition-colors ${
-                          index === selectedIndex
-                            ? 'text-jade bg-base-elevated'
-                            : 'text-text hover:bg-base-elevated/60'
-                        }`}
-                        onClick={() => {
-                          setSelectedIndex(index);
-                          router.push(command.href);
-                          closePalette();
-                        }}
-                      >
-                        {command.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-text-dim rounded-md px-3 py-2 font-mono text-sm">
-                  No command matched. Press Enter to run search.
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="border-base-border border-b px-4 py-3">
-              <h2 className="text-text-bright font-mono text-sm uppercase tracking-wide">
-                Keyboard Shortcuts
-              </h2>
-            </div>
-
-            <div className="max-h-[360px] overflow-auto p-2">
-              <ul className="space-y-1">
-                {SHORTCUT_HINTS.map((shortcut) => (
+          <div className="max-h-[360px] overflow-auto p-2">
+            {matchingCommands.length > 0 ? (
+              <ul id={listboxId} role="listbox" aria-label="Commands" className="space-y-1">
+                {matchingCommands.map((command, index) => (
                   <li
-                    key={shortcut.keys}
-                    className="flex items-center justify-between gap-4 rounded-md px-3 py-2"
+                    key={command.id}
+                    id={listboxId + '-' + command.id}
+                    role="option"
+                    aria-selected={index === selectedIndex}
+                    onMouseDown={(event) => event.preventDefault()}
+                    className={`w-full cursor-pointer rounded-md px-3 py-2 text-left font-mono text-sm transition-colors ${
+                      index === selectedIndex
+                        ? 'text-jade bg-base-elevated'
+                        : 'text-text hover:bg-base-elevated/60'
+                    }`}
+                    onClick={() => {
+                      setSelectedIndex(index);
+                      router.push(command.href);
+                      closePalette();
+                    }}
                   >
-                    <span className="text-text">{shortcut.description}</span>
-                    <span className="border-base-border text-text rounded border px-2 py-0.5 font-mono text-xs">
-                      {shortcut.keys}
-                    </span>
+                    {command.label}
                   </li>
                 ))}
               </ul>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+            ) : (
+              <div className="text-text-dim rounded-md px-3 py-2 font-mono text-sm">
+                No command matched. Press Enter to run search.
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="max-h-[360px] overflow-auto p-2">
+            <ul className="space-y-1">
+              {SHORTCUT_HINTS.map((shortcut) => (
+                <li
+                  key={shortcut.keys}
+                  className="flex items-center justify-between gap-4 rounded-md px-3 py-2"
+                >
+                  <span className="text-text">{shortcut.description}</span>
+                  <span className="border-base-border text-text rounded border px-2 py-0.5 font-mono text-xs">
+                    {shortcut.keys}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+    </dialog>
   );
 }

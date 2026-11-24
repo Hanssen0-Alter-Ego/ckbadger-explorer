@@ -24,6 +24,19 @@ export default function Home() {
 
   return (
     <div className="bg-base-bg min-h-screen">
+      <a
+        href="#main-content"
+        onClick={(event) => {
+          const main = document.getElementById('main-content');
+          if (!main) return;
+          event.preventDefault();
+          main.focus({ preventScroll: true });
+          main.scrollIntoView?.({ block: 'start' });
+        }}
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[110] focus:rounded focus:bg-base-elevated focus:px-3 focus:py-2 focus:text-interactive"
+      >
+        Skip to main content
+      </a>
       <Header />
       {stats && stats.deepForkStatus && <DeepForkAlert status={stats.deepForkStatus} />}
       <HomeContent initialData={initialData} />

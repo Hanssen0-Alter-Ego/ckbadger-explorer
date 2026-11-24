@@ -17,7 +17,7 @@ import {
 import { PageHeader, Badge } from '@/components/ui/page-header';
 import { DataField, DataGrid } from '@/components/ui/data-field';
 import { UsageBar, ProgressBar } from '@/components/ui/progress-bar';
-import { api } from '@/lib/api';
+import { api, isNotFoundApiError } from '@/lib/api';
 import { useActiveNetwork } from '@/hooks/useActiveNetwork';
 import { isEditableElement } from '@/lib/search-focus';
 import { formatCkbAmount } from '@/lib/utils';
@@ -58,6 +58,7 @@ export default function BlockDetailPage() {
     data: block,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['block', id],
     queryFn: () => api.getBlock(id),
@@ -143,14 +144,35 @@ export default function BlockDetailPage() {
     );
   }
 
-  if (error || !block) {
+  if (!block) {
+    const isMissing = isNotFoundApiError(error);
     return (
       <div className="bg-base-bg min-h-screen">
         <Header />
         <main className="container mx-auto px-4 py-4">
           <TerminalPanel>
             <TerminalPanelContent className="py-12 text-center">
-              <h2 className="text-text-dim text-xl">Block not found</h2>
+              <h1 className="text-text text-xl">
+                {isMissing ? 'Block not found' : 'Could not load block'}
+              </h1>
+              <p className="text-text-dim mt-2 text-sm">
+                {isMissing
+                  ? 'Check the block number or hash and try another search.'
+                  : 'The explorer could not load this block. Please try again.'}
+              </p>
+              {isMissing ? (
+                <Link href="/" className="text-accent mt-4 inline-block underline">
+                  Back to explorer
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void refetch()}
+                  className="text-accent mt-4 cursor-pointer underline"
+                >
+                  Try again
+                </button>
+              )}
             </TerminalPanelContent>
           </TerminalPanel>
         </main>
