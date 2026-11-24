@@ -89,11 +89,11 @@ interface TxStatWidgetProps {
 function TxStatWidget({ label, value, data, color }: TxStatWidgetProps) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between">
+      <div data-testid="tx-stat-heading" className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-3">
         <span className="text-text-dim font-mono text-xs uppercase tracking-wider">{label}</span>
         <span
           className={cn(
-            'font-mono text-xl font-bold tabular-nums',
+            'shrink-0 whitespace-nowrap font-mono text-xl font-bold tabular-nums',
             color === 'green' ? 'text-text-bright' : 'text-text-bright'
           )}
         >

@@ -24,8 +24,8 @@ export function EpochProgress({
 
   return (
     <div className="border-base-border bg-base-surface h-full overflow-hidden rounded-none border p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-baseline gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex shrink-0 items-baseline gap-3">
           <span className="text-text-dim font-mono text-xs uppercase tracking-wider">Epoch</span>
           <span className="text-text-bright font-mono text-2xl font-bold tabular-nums">
             {epochNumber.toLocaleString()}
@@ -35,7 +35,7 @@ export function EpochProgress({
           </span>
         </div>
         {estimatedTimeRemaining && (
-          <div className="flex items-baseline gap-2">
+          <div data-testid="epoch-estimate" className="flex shrink-0 items-baseline gap-2 whitespace-nowrap">
             <span className="text-text-dim font-mono text-xs uppercase tracking-wider">
               Est. Time
             </span>

@@ -34,6 +34,7 @@ const makeRows = (count) =>
   for (const [device, width, height] of [
     ["desktop", 1440, 1000],
     ["mobile", 390, 844],
+    ["narrow", 320, 844],
   ])
     for (const mode of ["long", "short", "empty", "error", "loading"]) {
       const p = await browser.newPage({
