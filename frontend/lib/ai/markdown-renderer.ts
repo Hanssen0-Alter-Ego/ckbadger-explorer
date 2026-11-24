@@ -1,0 +1,2000 @@
+import { CHART_ROUTES } from '@/lib/ai/page-registry';
+import type { ScriptRefHashType } from '@/lib/script-ref';
+import {
+  api,
+  type Address,
+  type ActivitySummary24h,
+  type Block,
+  type Cell,
+  type ChartResponse,
+  type DaoDeposit,
+  type DotCellOutPoint,
+  type GlobalActivity,
+  type GlobalActivityFilter,
+  type GraphResponse,
+  type HardforkTimelineResponse,
+  type MinerDistributionResponse,
+  type MostUtilizedAssetsChartResponse,
+  type MostUtilizedScriptsChartResponse,
+  type ReorgDetail,
+  type StackedAreaChartResponse,
+  type Token,
+  type TokenHolder,
+  type TokenTransfer,
+  type Transaction,
+  type TransactionDetail,
+  type TransactionLifecycle,
+} from '@/lib/api';
+import { classifyActivity } from '@/lib/activity-classify';
+import { buildMarkdownDocument, markdownList, markdownTable } from '@/lib/ai/markdown-format';
+import { CHART_PAGE_SLUGS, type ParsedMarkdownPage } from '@/lib/ai/markdown-route';
+import { resolveBuildVersion } from '@/lib/runtime-config';
+import { resolveActiveNetwork } from '@/lib/active-network';
+import { analyzeWitness, buildScriptGroupLens, inferWitnessInsights } from '@/lib/witness-analysis';
+
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 200;
+const GLOBAL_ACTIVITY_FILTERS = [
+  'all',
+  'ckb',
+  'token',
+  'object',
+  'identity',
+  'dao',
+  'script',
+  'protocol',
+] as const;
+
+type MarkdownChartPayload =
+  | ChartResponse
+  | StackedAreaChartResponse
+  | MinerDistributionResponse
+  | MostUtilizedScriptsChartResponse
+  | MostUtilizedAssetsChartResponse;
+
+export class MarkdownRenderError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'MarkdownRenderError';
+    this.status = status;
+  }
+}
+
+interface RenderMarkdownInput {
+  page: ParsedMarkdownPage;
+  searchParams: URLSearchParams;
+  origin: string;
+}
+
+interface RenderMarkdownOutput {
+  status: number;
+  body: string;
+}
+
+function parseLimit(searchParams: URLSearchParams): number {
+  const raw = searchParams.get('limit');
+  if (raw === null) return DEFAULT_LIMIT;
+  if (!/^\d+$/.test(raw)) {
+    throw new MarkdownRenderError(400, `Invalid query param "limit": ${raw}`);
+  }
+  const limit = Number(raw);
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
+    throw new MarkdownRenderError(
+      400,
+      `Invalid query param "limit": ${raw}. Expected integer in [1, ${MAX_LIMIT}]`
+    );
+  }
+  return limit;
+}
+
+function parseOptionalInt(
+  searchParams: URLSearchParams,
+  key: string,
+  minInclusive: number
+): number | undefined {
+  const raw = searchParams.get(key);
+  if (raw === null) return undefined;
+  if (!/^-?\d+$/.test(raw)) {
+    throw new MarkdownRenderError(400, `Invalid query param "${key}": ${raw}`);
+  }
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < minInclusive) {
+    throw new MarkdownRenderError(
+      400,
+      `Invalid query param "${key}": ${raw}. Expected integer >= ${minInclusive}`
+    );
+  }
+  return value;
+}
+
+function parsePositiveIntField(name: string, raw: string): number {
+  if (!/^\d+$/.test(raw)) {
+    throw new MarkdownRenderError(400, `Invalid ${name}: ${raw}`);
+  }
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new MarkdownRenderError(400, `Invalid ${name}: ${raw}`);
+  }
+  return value;
+}
+
+function buildMeta(pathname: string, pageType: string, origin: string) {
+  const canonical = `${origin}${pathname}`;
+  return {
+    title: `ckbadger markdown - ${pathname}`,
+    path: pathname,
+    canonical,
+    pageType,
+    generatedAt: new Date().toISOString(),
+    buildVersion: resolveBuildVersion(),
+  };
+}
+
+function hashShort(value: string, start: number = 10, end: number = 8): string {
+  if (value.length <= start + end + 3) return value;
+  return `${value.slice(0, start)}...${value.slice(-end)}`;
+}
+
+/** `txHash-index`, or `-` when the name has no such cell. */
+function formatDotCellOutPoint(outPoint: DotCellOutPoint | null): string {
+  if (!outPoint) return '-';
+  return `${outPoint.txHash}-${outPoint.index}`;
+}
+
+function parseOutpoint(outpoint: string): { txHash: string; outputIndex: number } {
+  const delimiter = outpoint.lastIndexOf('-');
+  if (delimiter < 1 || delimiter === outpoint.length - 1) {
+    throw new MarkdownRenderError(
+      400,
+      `Invalid outpoint "${outpoint}". Expected "{txHash}-{outputIndex}"`
+    );
+  }
+  const txHash = outpoint.slice(0, delimiter);
+  const outputIndex = parsePositiveIntField('outputIndex', outpoint.slice(delimiter + 1));
+  return { txHash, outputIndex };
+}
+
+function parseScriptHashType(raw: string | null): ScriptRefHashType {
+  if (raw === null) return 'type';
+  if (raw === 'type' || raw === 'data' || raw === 'data1' || raw === 'data2') {
+    return raw;
+  }
+  throw new MarkdownRenderError(
+    400,
+    `Invalid query param "hashType": ${raw}. Expected one of type,data,data1,data2`
+  );
+}
+
+function parseGlobalActivityFilter(raw: string | null): GlobalActivityFilter {
+  if (raw === null) return 'all';
+  if ((GLOBAL_ACTIVITY_FILTERS as readonly string[]).includes(raw)) {
+    return raw as GlobalActivityFilter;
+  }
+  throw new MarkdownRenderError(
+    400,
+    `Invalid query param "filter": ${raw}. Expected one of ${GLOBAL_ACTIVITY_FILTERS.join(',')}`
+  );
+}
+
+function parseMnftActivityAction(raw: string | null): 'mint' | 'transfer' | 'burn' | undefined {
+  if (raw === null) return undefined;
+  if (raw === 'mint' || raw === 'transfer' || raw === 'burn') {
+    return raw;
+  }
+  throw new MarkdownRenderError(
+    400,
+    `Invalid query param "action": ${raw}. Expected one of mint,transfer,burn`
+  );
+}
+
+function renderCursorMeta(searchParams: URLSearchParams) {
+  return markdownTable(
+    ['param', 'value'],
+    [
+      ['limit', parseLimit(searchParams)],
+      ['cursor', searchParams.get('cursor') ?? '-'],
+    ]
+  );
+}
+
+function renderBlockRows(blocks: Block[]): unknown[][] {
+  return blocks.map((block) => [
+    block.number,
+    hashShort(block.hash),
+    block.transactionsCount,
+    block.proposalsCount,
+    block.timestamp,
+  ]);
+}
+
+function renderTxRows(txs: Transaction[]): unknown[][] {
+  return txs.map((tx) => [
+    hashShort(tx.hash),
+    tx.blockNumber,
+    tx.inputsCount,
+    tx.outputsCount,
+    tx.fee,
+    tx.timestamp,
+  ]);
+}
+
+function renderActivitySummary(summary: ActivitySummary24h): string {
+  return markdownTable(
+    ['field', 'value'],
+    [
+      ['hoursCovered', summary.hoursCovered],
+      ['transferCount', summary.transferCount],
+      ['daoDepositCount', summary.daoDepositCount],
+      ['daoWithdrawRequestCount', summary.daoWithdrawRequestCount],
+      ['daoWithdrawCompleteCount', summary.daoWithdrawCompleteCount],
+      ['tokenCount', summary.tokenCount],
+      ['objectCount', summary.objectCount],
+      ['identityCount', summary.identityCount],
+      ['scriptCallCount', summary.scriptCallCount],
+      ['unknownCount', summary.unknownCount],
+      ['coinbaseCount', summary.coinbaseCount],
+      ['uniqueAddressCount', summary.uniqueAddressCount],
+      ['totalCkbMoved', summary.totalCkbMoved],
+    ]
+  );
+}
+
+function renderActivityDetail(activity: GlobalActivity): string {
+  const classified = classifyActivity(activity);
+
+  if (classified.primaryProtocolAction) {
+    const pa = classified.primaryProtocolAction;
+    if (pa.protocol === 'dao') {
+      const capacity = pa.metadata?.capacity as string | undefined;
+      const compensation = pa.metadata?.compensation as string | undefined;
+      const depositBlock = pa.metadata?.depositBlock as number | undefined;
+      let detail = `dao:${pa.action}`;
+      if (capacity) detail += ` capacity=${capacity}`;
+      if (depositBlock) detail += ` depositBlock=${depositBlock}`;
+      if (compensation) detail += ` compensation=${compensation}`;
+      return detail;
+    }
+    return `${pa.protocol}:${pa.action}`;
+  }
+
+  if (classified.primaryItemDelta) {
+    switch (classified.primaryItemDelta.kind) {
+      case 'token':
+        return `${classified.primaryItemDelta.symbol ?? hashShort(classified.primaryItemDelta.typeScriptHash)} delta=${classified.primaryItemDelta.delta}`;
+      case 'object':
+        return `object ${hashShort(classified.primaryItemDelta.objectId)} delta=${classified.primaryItemDelta.delta}`;
+      case 'identity':
+        return `identity ${hashShort(classified.primaryItemDelta.identityId)} delta=${classified.primaryItemDelta.delta}`;
+    }
+  }
+
+  if (classified.primaryTypeCall) {
+    return (
+      classified.primaryTypeCall.scriptName ?? hashShort(classified.primaryTypeCall.typeCodeHash)
+    );
+  }
+
+  if (classified.primaryLockCall) {
+    return (
+      classified.primaryLockCall.scriptName ?? hashShort(classified.primaryLockCall.lockCodeHash)
+    );
+  }
+
+  return '-';
+}
+
+function renderGlobalActivityRows(activities: GlobalActivity[]): unknown[][] {
+  return activities.map((activity) => {
+    const classified = classifyActivity(activity);
+    // The most specific identity the API gave: an address, else the lock hash
+    // of a lock that encodes to no address, else a protocol-named prefix.
+    const party = activity.participants[0];
+    const addr = party?.address ?? party?.lockHash ?? party?.lockHashPrefix ?? '';
+    const ckbDelta = activity.participants[0]?.ckbDelta ?? '0';
+    return [
+      activity.timestamp,
+      hashShort(addr),
+      hashShort(activity.txHash),
+      activity.blockNumber,
+      classified.displayType,
+      ckbDelta,
+      renderActivityDetail(activity),
+    ];
+  });
+}
+
+function renderChartData(chart: ChartResponse): string {
+  const rows = chart.data
+    .slice(0, 120)
+    .map((point) => [point.date, point.value, point.value2 ?? '-']);
+  return [
+    `## ${chart.title}`,
+    '',
+    markdownTable(['date', 'value', 'value2'], rows),
+    '',
+    `Total points: ${chart.data.length}`,
+  ].join('\n');
+}
+
+function renderStackedChartData(chart: StackedAreaChartResponse): string {
+  const keys = chart.series.map((series) => series.key);
+  const rows = chart.data
+    .slice(0, 120)
+    .map((point) => [point.date, ...keys.map((key) => point.values[key] ?? '-')]);
+  return [
+    `## ${chart.title}`,
+    '',
+    markdownTable(['date', ...keys], rows),
+    '',
+    `Total points: ${chart.data.length}`,
+  ].join('\n');
+}
+
+function renderMostUtilizedScripts(chart: MostUtilizedScriptsChartResponse): string {
+  return [
+    `## ${chart.title}`,
+    '',
+    renderStackedChartData(chart.usedShare),
+    '',
+    renderStackedChartData(chart.capacityShare),
+  ].join('\n');
+}
+
+function renderMostUtilizedAssets(chart: MostUtilizedAssetsChartResponse): string {
+  return [
+    `## ${chart.title}`,
+    '',
+    renderStackedChartData(chart.usedShare),
+    '',
+    renderStackedChartData(chart.capacityShare),
+  ].join('\n');
+}
+
+function renderMinerDistribution(chart: MinerDistributionResponse): string {
+  return [
+    `## ${chart.title}`,
+    '',
+    markdownTable(
+      ['minerLockHash', 'address', 'minerName', 'blocksMined', 'percentage'],
+      chart.data.map((miner) => [
+        hashShort(miner.minerLockHash),
+        miner.address ?? '-',
+        miner.minerName ?? '-',
+        miner.blocksMined,
+        miner.percentage,
+      ])
+    ),
+    '',
+    `Window: ${chart.fromDate}–${chart.toDate} (${chart.windowDays} complete UTC+8 days)`,
+    '',
+    `Total blocks: ${chart.totalBlocks}`,
+  ].join('\n');
+}
+
+function renderMarkdownForChart(slug: string, payload: MarkdownChartPayload): string {
+  if (slug === 'most-utilized-assets') {
+    return renderMostUtilizedAssets(payload as MostUtilizedAssetsChartResponse);
+  }
+
+  if (slug === 'most-utilized-scripts') {
+    return renderMostUtilizedScripts(payload as MostUtilizedScriptsChartResponse);
+  }
+
+  if (slug === 'miner-address-distribution') {
+    return renderMinerDistribution(payload as MinerDistributionResponse);
+  }
+
+  if ('series' in payload && 'data' in payload) {
+    return renderStackedChartData(payload as StackedAreaChartResponse);
+  }
+
+  if ('yAxisLabel' in payload && 'data' in payload) {
+    return renderChartData(payload as ChartResponse);
+  }
+
+  throw new MarkdownRenderError(500, `Unsupported chart payload for slug "${slug}"`);
+}
+
+function selectChartFetcher(slug: string): (() => Promise<MarkdownChartPayload>) | null {
+  const method = Object.hasOwn(CHART_ROUTES, slug)
+    ? CHART_ROUTES[slug as keyof typeof CHART_ROUTES]
+    : undefined;
+  return method ? () => api[method]() : null;
+}
+
+function renderAddressSummary(address: Address) {
+  return markdownTable(
+    ['field', 'value'],
+    [
+      ['address', address.address ?? '-'],
+      ['lockScriptHash', address.lockScriptHash],
+      ['balance', address.balance],
+      ['commonKnowledgeSize', address.commonKnowledgeSize],
+      ['liveCellsCount', address.liveCellsCount],
+      ['transactionsCount', address.transactionsCount],
+    ]
+  );
+}
+
+function renderCellSummary(cell: Cell) {
+  return markdownTable(
+    ['field', 'value'],
+    [
+      ['txHash', cell.txHash],
+      ['outputIndex', cell.outputIndex],
+      ['status', cell.status ?? '-'],
+      ['capacity', cell.capacity],
+      ['commonKnowledgeSize', cell.commonKnowledgeSize ?? '-'],
+      ['lockScriptHash', cell.lockScriptHash],
+      ['typeScriptHash', cell.typeScriptHash ?? '-'],
+      ['createdAtBlock', cell.createdAtBlock],
+      ['consumedAtBlock', cell.consumedAtBlock ?? '-'],
+      ['consumedByTx', cell.consumedByTx ?? '-'],
+    ]
+  );
+}
+
+function renderForkDetail(detail: ReorgDetail): string {
+  return [
+    '## Fork Event',
+    '',
+    markdownTable(
+      ['field', 'value'],
+      [
+        ['id', detail.event.id],
+        ['eventType', detail.event.eventType],
+        ['depth', detail.event.depth],
+        ['forkPointNumber', detail.event.forkPointNumber],
+        ['oldTipNumber', detail.event.oldTipNumber],
+        ['newTipNumber', detail.event.newTipNumber],
+        ['detectedAt', detail.event.detectedAt],
+        ['resolvedAt', detail.event.resolvedAt ?? '-'],
+      ]
+    ),
+    '',
+    '## Orphaned Blocks',
+    '',
+    markdownTable(
+      ['number', 'hash', 'txCount', 'timestamp'],
+      detail.orphanedBlocks.map((block) => [
+        block.number,
+        hashShort(block.hash),
+        block.transactionsCount,
+        block.timestamp,
+      ])
+    ),
+    '',
+    '## Orphaned Transactions',
+    '',
+    markdownTable(
+      ['hash', 'blockNumber', 'inputs', 'outputs', 'totalCapacity'],
+      detail.orphanedTransactions.map((tx) => [
+        hashShort(tx.hash),
+        tx.blockNumber,
+        tx.inputsCount ?? '-',
+        tx.outputsCount ?? '-',
+        tx.totalCapacity ?? '-',
+      ])
+    ),
+  ].join('\n');
+}
+
+function renderTokenSummary(token: Token) {
+  return markdownTable(
+    ['field', 'value'],
+    [
+      ['typeScriptHash', token.typeScriptHash],
+      ['symbol', token.symbol ?? '-'],
+      ['name', token.name ?? '-'],
+      ['standard', token.standard],
+      ['decimals', token.decimals ?? 'unknown'],
+      ['totalSupply', token.totalSupply],
+      ['holdersCount', token.holdersCount],
+      ['transfersCount', token.transfersCount],
+      ['transfers24h', token.transfers24h],
+      ['published', token.published],
+      ['famous', token.famous],
+    ]
+  );
+}
+
+function renderTokenHolders(holders: TokenHolder[]) {
+  return markdownTable(
+    ['lockScriptHash', 'address', 'balance'],
+    holders.map((holder) => [
+      hashShort(holder.lockScriptHash),
+      holder.address ?? '-',
+      holder.balance,
+    ])
+  );
+}
+
+function renderTokenTransfers(transfers: TokenTransfer[]) {
+  return markdownTable(
+    ['txHash', 'block', 'from', 'to', 'amount', 'mint', 'burn', 'timestamp'],
+    transfers.map((transfer) => [
+      hashShort(transfer.txHash),
+      transfer.blockNumber,
+      transfer.fromAddress ?? transfer.fromLockHash ?? '-',
+      transfer.toAddress ?? transfer.toLockHash,
+      transfer.amount,
+      transfer.isMint,
+      transfer.isBurn,
+      transfer.timestamp,
+    ])
+  );
+}
+
+function renderTxSummary(tx: TransactionDetail, lifecycle: TransactionLifecycle | null) {
+  return markdownTable(
+    ['field', 'value'],
+    [
+      ['hash', tx.hash],
+      ['blockNumber', tx.blockNumber],
+      ['index', tx.index],
+      ['timestamp', tx.timestamp],
+      ['isCellbase', tx.isCellbase],
+      ['confirmations', tx.confirmations],
+      ['inputsCount', tx.inputsCount],
+      ['outputsCount', tx.outputsCount],
+      ['fee', tx.fee],
+      ['feeRate', tx.feeRate ?? '-'],
+      ['txSize', tx.txSize ?? '-'],
+      ['cycles', tx.cycles ?? '-'],
+      ['witnessesCount', tx.witnesses?.length ?? 0],
+      ['witnessesAvailable', tx.witnessesAvailable ?? tx.witnesses?.length !== 0],
+      ['lifecyclePhase', lifecycle?.phase ?? '-'],
+      ['commitmentDistance', lifecycle?.commitmentDistance ?? '-'],
+    ]
+  );
+}
+
+function renderGraphSummary(graph: GraphResponse) {
+  return markdownTable(
+    ['field', 'value'],
+    [
+      ['nodes', graph.nodes.length],
+      ['links', graph.links.length],
+    ]
+  );
+}
+
+function renderHardforkTimeline(data: HardforkTimelineResponse) {
+  return [
+    '## Network',
+    '',
+    markdownTable(
+      ['field', 'value'],
+      [
+        ['network', data.network],
+        ['tipEpoch', data.tipEpoch],
+        ['tipBlock', data.tipBlock],
+      ]
+    ),
+    '',
+    '## Hardfork Events',
+    '',
+    markdownTable(
+      ['id', 'name', 'status', 'activationEpoch', 'activationBlock', 'activationDate'],
+      data.events.map((event) => [
+        event.id,
+        event.name,
+        event.status,
+        event.activationEpoch,
+        event.activationBlock ?? '-',
+        event.activationDate,
+      ])
+    ),
+  ].join('\n');
+}
+
+function renderDaoDepositsRows(deposits: DaoDeposit[]): unknown[][] {
+  return deposits.map((deposit) => [
+    hashShort(deposit.txHash),
+    deposit.outputIndex,
+    deposit.status,
+    deposit.capacity,
+    deposit.depositBlockNumber,
+    deposit.withdrawBlock ?? '-',
+    deposit.compensation ?? '-',
+  ]);
+}
+
+export async function renderMarkdownPage(
+  input: RenderMarkdownInput
+): Promise<RenderMarkdownOutput> {
+  const { page, searchParams, origin } = input;
+  if (page.kind === 'unknown') {
+    const body = buildMarkdownDocument(buildMeta(page.pathname, 'unknown', origin), [
+      `# Unknown Page`,
+      '',
+      `No markdown renderer is registered for \`${page.pathname}\`.`,
+    ]);
+    return { status: 404, body };
+  }
+
+  switch (page.kind) {
+    case 'home': {
+      const [stats, blocks, txs] = await Promise.all([
+        api.getNetworkStats(),
+        api.getBlocks({ limit: 10 }),
+        api.getTransactions({ limit: 10 }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Home',
+        '',
+        '## Network Stats',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['latestBlock', stats.latestBlock],
+            ['avgBlockTime', stats.avgBlockTime],
+            ['hashRate', stats.hashRate],
+            ['difficulty', stats.difficulty],
+            ['epoch', stats.epoch],
+            ['tps', stats.tps],
+            ['transactionsPerMinute', stats.transactionsPerMinute],
+            ['transactionsPerDay', stats.transactionsPerDay],
+          ]
+        ),
+        '',
+        '## Latest Blocks',
+        '',
+        markdownTable(
+          ['number', 'hash', 'txs', 'proposals', 'timestamp'],
+          renderBlockRows(blocks.data)
+        ),
+        '',
+        '## Latest Transactions',
+        '',
+        markdownTable(
+          ['hash', 'blockNumber', 'inputs', 'outputs', 'fee', 'timestamp'],
+          renderTxRows(txs.data)
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'activities_list': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const filter = parseGlobalActivityFilter(searchParams.get('filter'));
+      const [summary, activities] = await Promise.all([
+        api.getActivitySummary24h(),
+        api.getGlobalActivities({ limit, cursor, filter }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Activities',
+        '',
+        '## Query',
+        '',
+        markdownTable(
+          ['param', 'value'],
+          [
+            ['limit', limit],
+            ['cursor', cursor ?? '-'],
+            ['filter', filter],
+          ]
+        ),
+        '',
+        '## Last 24 Hours',
+        '',
+        renderActivitySummary(summary),
+        '',
+        '## Results',
+        '',
+        activities.data.length === 0
+          ? 'No activities found.'
+          : markdownTable(
+              ['timestamp', 'address', 'txHash', 'blockNumber', 'kind', 'ckbDelta', 'detail'],
+              renderGlobalActivityRows(activities.data)
+            ),
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['limit', activities.limit],
+            ['total', activities.total ?? '-'],
+            ['hasMore', activities.hasMore],
+            ['nextCursor', activities.nextCursor ?? '-'],
+          ]
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'hardforks': {
+      const hardforks = await api.getHardforks({ network: resolveActiveNetwork() });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Hardforks',
+        '',
+        renderHardforkTimeline(hardforks),
+      ]);
+      return { status: 200, body };
+    }
+    case 'network_overview': {
+      const summary = await api.getNetworkSummary();
+      const sections: string[] = [
+        '# Peers',
+        '',
+        'CKB L1 peer advertisements and same-network reachability evidence from this crawler.',
+        'An advertised candidate is not verified until an authenticated, same-network Identify',
+        'exchange completes. These local observations are not the full network.',
+        '',
+        '## Status',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['crawlerEnabled', summary.enabled],
+            ['hasData', summary.hasData],
+          ]
+        ),
+      ];
+      if (summary.lastRound) {
+        const round = summary.lastRound;
+        sections.push(
+          '',
+          '## Last Round',
+          '',
+          markdownTable(
+            ['field', 'value'],
+            [
+              ['roundId', round.roundId],
+              ['candidatePeers', round.candidatePeers],
+              ['verifiedRetainedPeers', round.verifiedRetainedPeers],
+              ['reachablePeers', round.reachablePeers],
+              ['verifiedUnavailablePeers', round.verifiedUnavailablePeers],
+              ['exhaustedCandidates', round.exhaustedCandidates],
+              ['addressAttempts', round.addressAttempts],
+              ['nonSuccessfulAddressAttempts', round.nonSuccessfulAddressAttempts],
+              ['foreignPeers', round.foreignPeers],
+              ['finishedAt', round.finishedAt],
+            ]
+          )
+        );
+      } else {
+        sections.push(
+          '',
+          summary.enabled
+            ? 'Crawler enabled — waiting for the first round to finish.'
+            : 'Crawler disabled. Enable it in ckbadger.toml under `[crawler]` with `enabled = true`.'
+        );
+      }
+      if (summary.activeRound) {
+        const active = summary.activeRound;
+        sections.push(
+          '',
+          '## Active Round',
+          '',
+          markdownTable(
+            ['field', 'value'],
+            [
+              ['roundId', active.roundId],
+              ['candidatePeers', active.candidatePeers],
+              ['completedPeers', active.completedPeers],
+              ['addressAttempts', active.addressAttempts],
+              ['lastCheckpointAt', active.lastCheckpointAt],
+              ['blockedReason', active.blockedReason ?? ''],
+            ]
+          )
+        );
+      }
+      sections.push(
+        '',
+        '## API',
+        '',
+        markdownTable(
+          ['endpoint', 'description'],
+          [
+            ['/network/summary', 'onboarding vs dashboard switch (this page)'],
+            ['/network/distributions', 'version / country / ASN / protocol counts'],
+            ['/network/history', 'historical verified / reachable / share trends'],
+            ['/network/peers', 'filterable, cursor-paginated peer evidence'],
+            ['/network/peers/{peerId}', 'address-level observations and advertiser evidence'],
+          ]
+        )
+      );
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), sections);
+      return { status: 200, body };
+    }
+    case 'blocks_list': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const blocks = await api.getBlocks({ limit, cursor });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Blocks',
+        '',
+        '## Query',
+        '',
+        renderCursorMeta(searchParams),
+        '',
+        '## Results',
+        '',
+        markdownTable(
+          ['number', 'hash', 'txs', 'proposals', 'timestamp'],
+          renderBlockRows(blocks.data)
+        ),
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['limit', blocks.limit],
+            ['total', blocks.total ?? '-'],
+            ['hasMore', blocks.hasMore],
+            ['nextCursor', blocks.nextCursor ?? '-'],
+          ]
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'block_detail': {
+      const [block, feeStats, proposals] = await Promise.all([
+        api.getBlock(page.id),
+        api.getBlockFeeStats(page.id),
+        api.getBlockProposals(page.id),
+      ]);
+      const txs = await api.getTransactions({
+        blockNumber: block.number,
+        limit: parseLimit(searchParams),
+        cursor: searchParams.get('cursor') ?? undefined,
+      });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Block ${block.number}`,
+        '',
+        '## Summary',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['number', block.number],
+            ['hash', block.hash],
+            ['parentHash', block.parentHash],
+            ['timestamp', block.timestamp],
+            ['epochNumber', block.epochNumber],
+            ['epochIndex', block.epochIndex],
+            ['epochLength', block.epochLength],
+            ['transactionsCount', block.transactionsCount],
+            ['proposalsCount', block.proposalsCount],
+            ['unclesCount', block.unclesCount],
+            ['difficulty', block.difficulty],
+            ['minerAddress', block.minerAddress ?? '-'],
+            ['miningReward', block.miningReward ?? '-'],
+          ]
+        ),
+        '',
+        '## Fee Stats',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['totalSize', feeStats.totalSize],
+            ['totalCycles', feeStats.totalCycles],
+            ['avgFeeRate', feeStats.avgFeeRate],
+            ['minFeeRate', feeStats.minFeeRate],
+            ['maxFeeRate', feeStats.maxFeeRate],
+          ]
+        ),
+        '',
+        '## Proposals',
+        '',
+        markdownTable(
+          ['proposalIndex', 'proposalId', 'committedTxHash', 'committedBlockNumber'],
+          proposals.map((proposal) => [
+            proposal.proposalIndex,
+            proposal.proposalId,
+            proposal.committedTxHash ?? '-',
+            proposal.committedBlockNumber ?? '-',
+          ])
+        ),
+        '',
+        '## Transactions',
+        '',
+        markdownTable(
+          ['hash', 'blockNumber', 'inputs', 'outputs', 'fee', 'timestamp'],
+          renderTxRows(txs.data)
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'transactions_list': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const txs = await api.getTransactions({ limit, cursor });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Transactions',
+        '',
+        '## Query',
+        '',
+        renderCursorMeta(searchParams),
+        '',
+        '## Results',
+        '',
+        markdownTable(
+          ['hash', 'blockNumber', 'inputs', 'outputs', 'fee', 'timestamp'],
+          renderTxRows(txs.data)
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'tx_detail': {
+      const tx = await api.getTransactionDetail(page.hash);
+      const [lifecycle, cellDeps] = await Promise.all([
+        tx.isCellbase ? Promise.resolve(null) : api.getTransactionLifecycle(page.hash),
+        api.getTransactionCellDeps(page.hash),
+      ]);
+      const witnesses = tx.witnesses ?? [];
+      const witnessAnalyses = witnesses.map((witness, index) =>
+        analyzeWitness(witness, index, tx.inputsCount)
+      );
+      const witnessRows = witnessAnalyses.map((analysis) => {
+        return [
+          analysis.index,
+          analysis.role,
+          analysis.byteLength,
+          analysis.deterministic?.kind ?? '-',
+          analysis.heuristicGuesses.map((guess) => guess.kind).join(', ') || '-',
+        ];
+      });
+      const witnessInferences = inferWitnessInsights(
+        tx,
+        witnessAnalyses,
+        buildScriptGroupLens(tx)
+      ).map((inference) => [
+        inference.severity,
+        inference.kind,
+        inference.message,
+        inference.detail ?? '-',
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Transaction ${hashShort(tx.hash, 12, 12)}`,
+        '',
+        '## Summary',
+        '',
+        renderTxSummary(tx, lifecycle),
+        '',
+        '## Inputs',
+        '',
+        markdownTable(
+          ['index', 'capacity', 'address', 'lockCodeHash', 'typeCodeHash'],
+          (tx.inputs ?? []).map((input, index) => [
+            index,
+            input.capacity ?? '-',
+            input.address ?? '-',
+            input.lock?.codeHash ?? '-',
+            input.type?.codeHash ?? '-',
+          ])
+        ),
+        '',
+        '## Outputs',
+        '',
+        markdownTable(
+          ['index', 'capacity', 'commonKnowledgeSize', 'address', 'cellType'],
+          (tx.outputs ?? []).map((output, index) => [
+            index,
+            output.capacity,
+            output.commonKnowledgeSize,
+            output.address ?? '-',
+            output.cellType ?? '-',
+          ])
+        ),
+        '',
+        '## Witnesses',
+        '',
+        tx.witnessesAvailable === false
+          ? 'Witness bytes unavailable (set `[ckb].data_path` in `ckbadger.toml` or verify RPC connectivity).'
+          : witnessRows.length === 0
+            ? 'No witness entries.'
+            : markdownTable(
+                ['index', 'role', 'bytes', 'deterministicKind', 'heuristics'],
+                witnessRows
+              ),
+        '',
+        '## Witness Inference',
+        '',
+        witnessInferences.length === 0
+          ? 'No witness inference generated.'
+          : markdownTable(['severity', 'kind', 'message', 'detail'], witnessInferences),
+        '',
+        '## Cell Deps',
+        '',
+        markdownTable(
+          ['outPointTxHash', 'outPointIndex', 'depType'],
+          cellDeps.map((dep) => [hashShort(dep.outPointTxHash), dep.outPointIndex, dep.depType])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'address_detail': {
+      const address = await api.getAddress(page.addr);
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const [txs, tokens] = await Promise.all([
+        api.getAddressTransactions(address.lockScriptHash, { limit, cursor }),
+        api.getAddressTokens(address.lockScriptHash, { limit, cursor }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Address ${address.address ?? hashShort(address.lockScriptHash)}`,
+        '',
+        '## Summary',
+        '',
+        renderAddressSummary(address),
+        '',
+        '## Transactions',
+        '',
+        markdownTable(
+          ['txHash', 'blockNumber', 'txType', 'capacityChange', 'timestamp'],
+          txs.data.map((tx) => [
+            hashShort(tx.txHash),
+            tx.blockNumber,
+            tx.txType,
+            tx.capacityChange,
+            tx.timestamp,
+          ])
+        ),
+        '',
+        '## Tokens',
+        '',
+        markdownTable(
+          ['typeScriptHash', 'standard', 'name', 'symbol', 'balance'],
+          tokens.data.map((token) => [
+            hashShort(token.typeScriptHash),
+            token.standard,
+            token.name ?? '-',
+            token.symbol ?? '-',
+            token.balance,
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'cell_detail': {
+      const { txHash, outputIndex } = parseOutpoint(page.outpoint);
+      const [cell, graph] = await Promise.all([
+        api.getCell(txHash, outputIndex),
+        api.getCellGraph(txHash, outputIndex, 2),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Cell ${hashShort(cell.txHash)}:${cell.outputIndex}`,
+        '',
+        '## Summary',
+        '',
+        renderCellSummary(cell),
+        '',
+        '## Graph',
+        '',
+        renderGraphSummary(graph),
+      ]);
+      return { status: 200, body };
+    }
+    case 'tokens_list': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const tokens = await api.getTokens({ limit, cursor });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Tokens',
+        '',
+        '## Query',
+        '',
+        renderCursorMeta(searchParams),
+        '',
+        '## Results',
+        '',
+        markdownTable(
+          ['typeScriptHash', 'symbol', 'name', 'standard', 'holders', 'transfers24h'],
+          tokens.data.map((token) => [
+            hashShort(token.typeScriptHash),
+            token.symbol ?? '-',
+            token.name ?? '-',
+            token.standard,
+            token.holdersCount,
+            token.transfers24h,
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'token_detail': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const [token, holders, transfers] = await Promise.all([
+        api.getToken(page.typeHash),
+        api.getTokenHolders(page.typeHash, { limit, cursor }),
+        api.getTokenTransfers(page.typeHash, { limit, cursor }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Token ${token.symbol ?? hashShort(token.typeScriptHash)}`,
+        '',
+        '## Summary',
+        '',
+        renderTokenSummary(token),
+        '',
+        '## Holders',
+        '',
+        renderTokenHolders(holders.data),
+        '',
+        '## Transfers',
+        '',
+        renderTokenTransfers(transfers.data),
+      ]);
+      return { status: 200, body };
+    }
+    case 'inventory_tokens':
+    case 'inventory_objects':
+    case 'inventory_identities': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const typeMap = {
+        inventory_tokens: 'token' as const,
+        inventory_objects: 'object' as const,
+        inventory_identities: 'identity' as const,
+      };
+      const titleMap = {
+        inventory_tokens: 'Tokens',
+        inventory_objects: 'Objects',
+        inventory_identities: 'Identities',
+      };
+      const assetType = typeMap[page.kind];
+      const assets = await api.getAssets({ limit, cursor, type: assetType });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# ${titleMap[page.kind]}`,
+        '',
+        '## Query',
+        '',
+        renderCursorMeta(searchParams),
+        '',
+        '## Results',
+        '',
+        markdownTable(
+          ['id', 'assetType', 'standard', 'name', 'symbol', 'holders', 'transfers24h'],
+          assets.data.map((asset) => [
+            hashShort(asset.id),
+            asset.assetType,
+            asset.standard,
+            asset.name ?? '-',
+            asset.symbol ?? '-',
+            asset.holdersCount,
+            asset.transfers24h,
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'objects_list': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const objects = await api.getSporeObjects({ limit, cursor });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Objects',
+        '',
+        '## Query',
+        '',
+        renderCursorMeta(searchParams),
+        '',
+        '## Results',
+        '',
+        markdownTable(
+          ['sporeId', 'clusterId', 'owner', 'isLive', 'createdAtBlock'],
+          objects.data.map((obj) => [
+            hashShort(obj.sporeId),
+            obj.clusterId ?? '-',
+            obj.ownerAddress ?? hashShort(obj.ownerLockHash),
+            obj.isLive,
+            obj.createdAtBlock,
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'object_detail': {
+      const obj = await api.getSporeObject(page.sporeId);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Object ${hashShort(obj.sporeId, 14, 12)}`,
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['sporeId', obj.sporeId],
+            ['txHash', obj.txHash],
+            ['outputIndex', obj.outputIndex],
+            ['clusterId', obj.clusterId ?? '-'],
+            ['contentType', obj.contentType],
+            ['contentSize', obj.contentSize],
+            ['ownerLockHash', obj.ownerLockHash],
+            ['ownerAddress', obj.ownerAddress ?? '-'],
+            ['isLive', obj.isLive],
+            ['createdAtBlock', obj.createdAtBlock],
+            ['ownedCapacity', obj.ownedCapacity ?? '-'],
+            ['ownedKnowledge', obj.ownedKnowledge ?? '-'],
+          ]
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'identity_collection': {
+      const collection = await api.getIdentityCollection(page.collectionId);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Identity Collection: ${collection.name ?? page.collectionId}`,
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['collectionId', collection.collectionId],
+            ['standard', collection.standard],
+            ['name', collection.name ?? '-'],
+            ['totalCount', collection.totalCount],
+            ['liveCount', collection.liveCount],
+            ['holdersCount', collection.holdersCount],
+            ['activitiesCount', collection.activitiesCount],
+          ]
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'mnft_item_detail': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const action = parseMnftActivityAction(searchParams.get('action'));
+      const [item, activities] = await Promise.all([
+        api.getMnftItemDetail(page.objectId),
+        api.getMnftItemActivities(page.objectId, { limit, cursor, action }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# mNFT ${hashShort(item.nftId, 14, 12)}`,
+        '',
+        '## Token',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['nftId', item.nftId],
+            ['standard', item.standard],
+            ['isLive', item.isLive],
+            ['ownerLockHash', item.ownerLockHash ?? '-'],
+            ['createdAtBlock', item.createdAtBlock],
+            ['tokenIndex', item.tokenIndex],
+            ['characteristicHex', item.characteristicHex],
+            ['configure', item.configure],
+            ['state', item.state],
+            ['txHash', item.txHash ?? '-'],
+            ['outputIndex', item.outputIndex ?? '-'],
+          ]
+        ),
+        '',
+        '## Class',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['classId', item.class.classId],
+            ['issuerId', item.class.issuerId],
+            ['name', item.class.name ?? '-'],
+            ['description', item.class.description ?? '-'],
+            ['renderer', item.class.renderer ?? '-'],
+            ['total', item.class.total],
+            ['issued', item.class.issued],
+            ['configure', item.class.configure],
+          ]
+        ),
+        '',
+        '## Issuer',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['issuerId', item.issuer.issuerId],
+            ['name', item.issuer.name ?? '-'],
+            ['classCount', item.issuer.classCount],
+            ['setCount', item.issuer.setCount],
+            ['infoHex', item.issuer.infoHex ?? '-'],
+          ]
+        ),
+        '',
+        '## Lifecycle',
+        '',
+        markdownTable(
+          ['event', 'blockNumber', 'txHash', 'outputIndex', 'note'],
+          item.lifecycle.map((event) => [
+            event.event,
+            event.blockNumber ?? '-',
+            event.txHash ?? '-',
+            event.outputIndex ?? '-',
+            event.note ?? '-',
+          ])
+        ),
+        '',
+        '## Activities',
+        '',
+        markdownTable(
+          ['txHash', 'blockNumber', 'txIndex', 'timestamp', 'actions'],
+          activities.data.map((activity) => [
+            hashShort(activity.txHash),
+            activity.blockNumber,
+            activity.txIndex,
+            activity.timestamp,
+            activity.actions.join(','),
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'dotbit_item_detail': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const action = parseMnftActivityAction(searchParams.get('action'));
+      const [item, activities] = await Promise.all([
+        api.getDotbitItemDetail(page.identityId),
+        api.getDotbitItemActivities(page.identityId, { limit, cursor, action }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# .bit ${item.name ?? hashShort(item.nftId, 14, 12)}`,
+        '',
+        '## Account',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['nftId', item.nftId],
+            ['name', item.name ?? '-'],
+            ['standard', item.standard],
+            ['isLive', item.isLive],
+            ['ownerLockHash', item.ownerLockHash ?? '-'],
+            ['createdAtBlock', item.createdAtBlock],
+            ['expiredAt', item.expiredAt ?? '-'],
+            ['txHash', item.txHash ?? '-'],
+            ['outputIndex', item.outputIndex ?? '-'],
+          ]
+        ),
+        '',
+        '## Activities',
+        '',
+        markdownTable(
+          ['txHash', 'blockNumber', 'txIndex', 'timestamp', 'actions'],
+          activities.data.map((activity) => [
+            hashShort(activity.txHash),
+            activity.blockNumber,
+            activity.txIndex,
+            activity.timestamp,
+            activity.actions.join(','),
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'did_ckb_item_detail': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const action = parseMnftActivityAction(searchParams.get('action'));
+      const [item, activities] = await Promise.all([
+        api.getDidCkbItemDetail(page.identityId),
+        api.getDidCkbItemActivities(page.identityId, { limit, cursor, action }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# did:ckb ${item.name ?? hashShort(item.nftId, 14, 12)}`,
+        '',
+        '## Identity',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['nftId', item.nftId],
+            ['name', item.name ?? '-'],
+            ['standard', item.standard],
+            ['isLive', item.isLive],
+            ['ownerLockHash', item.ownerLockHash ?? '-'],
+            ['createdAtBlock', item.createdAtBlock],
+            ['txHash', item.txHash ?? '-'],
+            ['outputIndex', item.outputIndex ?? '-'],
+          ]
+        ),
+        '',
+        '## Activities',
+        '',
+        markdownTable(
+          ['txHash', 'blockNumber', 'txIndex', 'timestamp', 'actions'],
+          activities.data.map((activity) => [
+            hashShort(activity.txHash),
+            activity.blockNumber,
+            activity.txIndex,
+            activity.timestamp,
+            activity.actions.join(','),
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'bit_cell_item_detail': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const action = parseMnftActivityAction(searchParams.get('action'));
+      const [item, activities] = await Promise.all([
+        api.getBitCellItemDetail(page.identityId),
+        api.getBitCellItemActivities(page.identityId, { limit, cursor, action }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# .bit Cell ${item.name ?? hashShort(item.nftId, 14, 12)}`,
+        '',
+        '## Identity',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['nftId', item.nftId],
+            ['name', item.name ?? '-'],
+            ['standard', item.standard],
+            ['isLive', item.isLive],
+            ['ownerLockHash', item.ownerLockHash ?? '-'],
+            ['createdAtBlock', item.createdAtBlock],
+            ['expiredAt', item.expiredAt ?? '-'],
+            ['txHash', item.txHash ?? '-'],
+            ['outputIndex', item.outputIndex ?? '-'],
+          ]
+        ),
+        '',
+        '## Activities',
+        '',
+        markdownTable(
+          ['txHash', 'blockNumber', 'txIndex', 'timestamp', 'actions'],
+          activities.data.map((activity) => [
+            hashShort(activity.txHash),
+            activity.blockNumber,
+            activity.txIndex,
+            activity.timestamp,
+            activity.actions.join(','),
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'dotcell_item_detail': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const action = parseMnftActivityAction(searchParams.get('action'));
+      const [item, activities] = await Promise.all([
+        api.getDotCellItemDetail(page.identityId),
+        api.getDotCellItemActivities(page.identityId, { limit, cursor, action }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# .cell ${item.name}`,
+        '',
+        '## Name',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['identityId', item.identityId],
+            ['label', item.label],
+            ['name', item.name],
+            ['state', item.state],
+            ['isLive', item.isLive],
+            ['expiredAt', item.expiredAt],
+            ['graceEndsAt', item.graceEndsAt],
+            ['layoutVersion', item.layoutVersion],
+            ['namespaceArgs', item.namespaceArgs],
+            ['createdAtBlock', item.createdAtBlock],
+            ['createdAtTx', item.createdAtTx],
+            ['liveOutPoint', formatDotCellOutPoint(item.liveOutPoint)],
+            ['recordsHash', item.recordsHash],
+            ['nextId', item.nextId],
+          ]
+        ),
+        '',
+        '## Ownership',
+        '',
+        // A 20-byte prefix is what the chain stores; `lockHash`/`address` are
+        // reported only when exactly one known lock matches it.
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['ownerHashPrefix', item.owner.hashPrefix],
+            ['ownerLockHash', item.owner.lockHash ?? '-'],
+            ['ownerAddress', item.owner.address ?? '-'],
+            ['ownerScriptName', item.owner.scriptName ?? '-'],
+            ['managerHashPrefix', item.manager.hashPrefix],
+            ['managerLockHash', item.manager.lockHash ?? '-'],
+            ['managerAddress', item.manager.address ?? '-'],
+            ['managerScriptName', item.manager.scriptName ?? '-'],
+          ]
+        ),
+        '',
+        '## Sale',
+        '',
+        item.sale
+          ? markdownTable(
+              ['field', 'value'],
+              [
+                ['priceShannons', item.sale.priceShannons],
+                ['sellerHashPrefix', item.sale.seller.hashPrefix],
+                ['sellerLockHash', item.sale.seller.lockHash ?? '-'],
+                ['sellerAddress', item.sale.seller.address ?? '-'],
+                ['offerOutPoint', formatDotCellOutPoint(item.sale.offerOutPoint)],
+              ]
+            )
+          : '_Not listed for sale_',
+        '',
+        '## Records',
+        '',
+        markdownTable(
+          ['key', 'label', 'value', 'ttl', 'decodedAddress'],
+          item.records.map((record) => [
+            record.key,
+            record.label,
+            record.valueUtf8 ?? record.valueHex,
+            record.ttl,
+            record.decodedAddress?.address ?? '-',
+          ])
+        ),
+        '',
+        '## Sub-names',
+        '',
+        markdownTable(
+          ['relation', 'identityId', 'name'],
+          [
+            ...(item.parent ? [['parent', item.parent.identityId, item.parent.name]] : []),
+            ...item.children.map((child) => ['child', child.identityId, child.name]),
+          ]
+        ),
+        '',
+        // The detail carries one page of sub-names; the rest page through
+        // `…/items/{id}/children` from this cursor.
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['childrenHasMore', item.childrenHasMore],
+            ['childrenNextCursor', item.childrenNextCursor ?? '-'],
+          ]
+        ),
+        '',
+        '## Activities',
+        '',
+        markdownTable(
+          ['txHash', 'blockNumber', 'txIndex', 'timestamp', 'actions'],
+          activities.data.map((activity) => [
+            hashShort(activity.txHash),
+            activity.blockNumber,
+            activity.txIndex,
+            activity.timestamp,
+            activity.actions.join(','),
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'classes_detail': {
+      const collection = await api.getObjectCollection(page.classId);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Class ${collection.name ?? hashShort(collection.collectionId)}`,
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['collectionId', collection.collectionId],
+            ['name', collection.name ?? '-'],
+            ['standard', collection.standard],
+            ['totalCount', collection.totalCount],
+            ['liveCount', collection.liveCount],
+            ['holdersCount', collection.holdersCount],
+            ['activitiesCount', collection.activitiesCount],
+            ['ownedCapacity', collection.ownedCapacity ?? '-'],
+            ['ownedKnowledge', collection.ownedKnowledge ?? '-'],
+          ]
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'clusters_detail': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const [cluster, spores] = await Promise.all([
+        api.getSporeCluster(page.clusterId),
+        api.getSporesByCluster(page.clusterId, { limit, cursor }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Cluster ${cluster.name ?? hashShort(cluster.clusterId)}`,
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['clusterId', cluster.clusterId],
+            ['name', cluster.name ?? '-'],
+            ['description', cluster.description ?? '-'],
+            ['ownerLockHash', cluster.ownerLockHash],
+            ['ownerAddress', cluster.ownerAddress ?? '-'],
+            ['sporesCount', cluster.sporesCount],
+            ['createdAtBlock', cluster.createdAtBlock],
+            ['ownedCapacity', cluster.ownedCapacity ?? '-'],
+            ['ownedKnowledge', cluster.ownedKnowledge ?? '-'],
+          ]
+        ),
+        '',
+        '## Spores',
+        '',
+        markdownTable(
+          ['sporeId', 'owner', 'isLive', 'createdAtBlock'],
+          spores.data.map((spore) => [
+            hashShort(spore.sporeId),
+            spore.ownerAddress ?? hashShort(spore.ownerLockHash),
+            spore.isLive,
+            spore.createdAtBlock,
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'scripts_list': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const scripts = await api.getScripts({ limit, cursor });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Scripts',
+        '',
+        '## Query',
+        '',
+        renderCursorMeta(searchParams),
+        '',
+        '## Results',
+        '',
+        markdownTable(
+          ['name', 'scriptKind', 'liveCellsCount', 'cellsCount', 'ownedCapacitySum'],
+          scripts.data.map((script) => [
+            script.name,
+            script.scriptKind ?? '-',
+            script.liveCellsCount ?? '-',
+            script.cellsCount ?? '-',
+            script.ownedCapacitySum ?? '-',
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'script_detail': {
+      const [script, usage] = await Promise.all([
+        api.getScriptFamilyDetail(page.name),
+        api.getScriptUsage(page.name),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Script ${page.name}`,
+        '',
+        '## Family',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['familyId', script.familyId],
+            ['name', script.name],
+            ['scriptKind', script.scriptKind ?? '-'],
+            ['versionsCount', script.versionsCount],
+            ['website', script.website ?? '-'],
+          ]
+        ),
+        '',
+        '## Usage',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['name', usage.name],
+            ['cellsCount', usage.cellsCount],
+            ['liveCellsCount', usage.liveCellsCount],
+            ['capacitySum', usage.capacitySum],
+            ['ownedCapacitySum', usage.ownedCapacitySum],
+            ['commonKnowledgeSizeSum', usage.commonKnowledgeSizeSum],
+            ['ownedKnowledgeSum', usage.ownedKnowledgeSum],
+          ]
+        ),
+        '',
+        '## Version Usage',
+        '',
+        markdownTable(
+          ['codeHash', 'scriptKind', 'cellsCount', 'liveCellsCount', 'ownedKnowledgeSum'],
+          usage.byDeployment.map((deployment) => [
+            hashShort(deployment.codeHash),
+            deployment.scriptKind ?? '-',
+            deployment.cellsCount,
+            deployment.liveCellsCount,
+            deployment.ownedKnowledgeSum,
+          ])
+        ),
+        '',
+        '## Versions',
+        '',
+        markdownTable(
+          [
+            'versionHash',
+            'scriptKind',
+            'deprecated',
+            'codeCellsTotal',
+            'liveCellsCount',
+            'firstDeployedAt',
+          ],
+          script.versions.map((version) => [
+            hashShort(version.versionHash),
+            version.scriptKind ?? '-',
+            version.deprecated,
+            version.codeCellsTotal,
+            version.liveCellsCount,
+            version.deployedAt ?? '-',
+          ])
+        ),
+        '',
+        '## Deployments',
+        '',
+        markdownTable(
+          ['versionHash', 'hashType', 'typeReferenceHash', 'dataReferenceHash', 'outpoint'],
+          script.versions.flatMap((version) =>
+            version.deployments.map((deployment) => [
+              hashShort(version.versionHash),
+              deployment.hashType,
+              deployment.typeReferenceHash ? hashShort(deployment.typeReferenceHash) : '-',
+              hashShort(deployment.dataReferenceHash),
+              `${hashShort(deployment.codeCellTxHash)}:${deployment.codeCellOutputIndex}`,
+            ])
+          )
+        ),
+        '',
+        '## Observed References',
+        '',
+        markdownTable(
+          ['versionHash', 'referenceHash', 'hashType', 'liveCellsCount', 'cellsCount'],
+          script.versions.flatMap((version) =>
+            version.references.map((reference) => [
+              hashShort(version.versionHash),
+              hashShort(reference.referenceHash),
+              reference.hashType,
+              reference.liveCellsCount,
+              reference.cellsCount,
+            ])
+          )
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'script_by_code_hash': {
+      const hashType = parseScriptHashType(searchParams.get('hashType'));
+      const [lookup, codeCell] = await Promise.all([
+        api.lookupScripts([page.codeHash]),
+        api.getCodeCell(page.codeHash, hashType),
+      ]);
+      const matched = lookup[page.codeHash];
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Script Code Hash ${hashShort(page.codeHash, 14, 12)}`,
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['codeHash', page.codeHash],
+            ['queryHashType', hashType],
+            ['knownName', matched?.name ?? '-'],
+            ['knownScriptKind', matched?.scriptKind ?? '-'],
+            ['knownHashType', matched?.hashType ?? '-'],
+            ['knownLiveCellsCount', matched?.liveCellsCount ?? '-'],
+            ['knownOwnedCapacitySum', matched?.ownedCapacitySum ?? '-'],
+            ['knownOwnedKnowledgeSum', matched?.ownedKnowledgeSum ?? '-'],
+            ['codeCellTxHash', codeCell.txHash],
+            ['codeCellOutputIndex', codeCell.outputIndex],
+          ]
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'dao_overview': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const status = parseOptionalInt(searchParams, 'status', 0);
+      const [stats, deposits] = await Promise.all([
+        api.getDaoStatistics(),
+        api.getDaoDeposits({ limit, cursor, status }),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# DAO',
+        '',
+        '## Statistics',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['totalDeposited', stats.totalDeposited],
+            ['totalDepositedCkb', stats.totalDepositedCkb],
+            ['totalDepositors', stats.totalDepositors],
+            ['activeDeposits', stats.activeDeposits],
+            ['totalCompensationPaid', stats.totalCompensationPaid],
+            ['totalCompensationPaidCkb', stats.totalCompensationPaidCkb],
+            ['unclaimedCompensation', stats.unclaimedCompensation],
+            ['unclaimedCompensationCkb', stats.unclaimedCompensationCkb],
+            ['averageDepositDays', stats.averageDepositDays],
+            ['estimatedApc', stats.estimatedApc],
+          ]
+        ),
+        '',
+        '## Deposits',
+        '',
+        markdownTable(
+          [
+            'txHash',
+            'outputIndex',
+            'status',
+            'capacity',
+            'depositBlock',
+            'withdrawBlock',
+            'compensation',
+          ],
+          renderDaoDepositsRows(deposits.data)
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'dao_charts': {
+      const [totalDeposit, dailyDeposit, circulationRatio] = await Promise.all([
+        api.getDaoTotalDepositChart(),
+        api.getDaoDailyDepositChart(),
+        api.getDaoCirculationRatioChart(),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# DAO Charts',
+        '',
+        renderChartData(totalDeposit),
+        '',
+        renderChartData(dailyDeposit),
+        '',
+        renderChartData(circulationRatio),
+      ]);
+      return { status: 200, body };
+    }
+    case 'forks_list': {
+      const limit = parseLimit(searchParams);
+      const cursor = searchParams.get('cursor') ?? undefined;
+      const [forks, recent] = await Promise.all([
+        api.getForks({ limit, cursor }),
+        api.getRecentReorg(),
+      ]);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Forks',
+        '',
+        '## Recent Reorg',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['hasRecentReorg', recent.hasRecentReorg],
+            ['reorgId', recent.reorg?.id ?? '-'],
+            ['reorgDepth', recent.reorg?.depth ?? '-'],
+            ['deepForkDetected', recent.deepFork.detected],
+            ['deepForkDepth', recent.deepFork.depth ?? '-'],
+          ]
+        ),
+        '',
+        '## Events',
+        '',
+        markdownTable(
+          ['id', 'eventType', 'depth', 'forkPointNumber', 'oldTip', 'newTip', 'detectedAt'],
+          forks.data.map((fork) => [
+            fork.id,
+            fork.eventType,
+            fork.depth,
+            fork.forkPointNumber,
+            fork.oldTipNumber,
+            fork.newTipNumber,
+            fork.detectedAt,
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+    case 'fork_detail': {
+      const id = parsePositiveIntField('fork id', page.id);
+      const detail = await api.getForkDetail(id);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Fork ${id}`,
+        '',
+        renderForkDetail(detail),
+      ]);
+      return { status: 200, body };
+    }
+    case 'charts_overview': {
+      const stats = await api.getNetworkStats();
+      const chartItems = CHART_PAGE_SLUGS.map((slug) => `/charts/${slug}.md`);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Charts',
+        '',
+        '## Network Snapshot',
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['latestBlock', stats.latestBlock],
+            ['avgBlockTime', stats.avgBlockTime],
+            ['hashRate', stats.hashRate],
+            ['difficulty', stats.difficulty],
+            ['epoch', stats.epoch],
+          ]
+        ),
+        '',
+        '## Chart Markdown Endpoints',
+        '',
+        markdownList(chartItems),
+      ]);
+      return { status: 200, body };
+    }
+    case 'chart_detail': {
+      const fetcher = selectChartFetcher(page.slug);
+      if (!fetcher) {
+        throw new MarkdownRenderError(
+          404,
+          `Unknown chart slug "${page.slug}". Known slugs: ${CHART_PAGE_SLUGS.join(', ')}`
+        );
+      }
+      const payload = await fetcher();
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Chart ${page.slug}`,
+        '',
+        renderMarkdownForChart(page.slug, payload),
+      ]);
+      return { status: 200, body };
+    }
+
+    case 'fiber_channels_list': {
+      const channels = await api.getFiberChannels({
+        limit: parseLimit(searchParams),
+        cursor: searchParams.get('cursor') ?? undefined,
+      });
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        '# Fiber Channels',
+        '',
+        renderCursorMeta(searchParams),
+        '',
+        markdownTable(
+          ['channelId', 'state', 'capacity', 'udtTypeHash', 'udtAmount', 'openBlock'],
+          channels.data.map((channel) => [
+            channel.channelId,
+            channel.state,
+            channel.capacity,
+            channel.udtTypeHash,
+            channel.udtAmount,
+            channel.openBlock,
+          ])
+        ),
+        '',
+        `Next cursor: ${channels.nextCursor ?? '-'}`,
+      ]);
+      return { status: 200, body };
+    }
+
+    case 'fiber_channel_detail': {
+      const channel = await api.getFiberChannel(page.channelId);
+      const body = buildMarkdownDocument(buildMeta(page.pathname, page.kind, origin), [
+        `# Fiber Channel ${page.channelId}`,
+        '',
+        markdownTable(
+          ['field', 'value'],
+          [
+            ['channelId', channel.channelId],
+            ['state', channel.state],
+            ['capacity', channel.capacity],
+            ['udtTypeHash', channel.udtTypeHash],
+            ['udtAmount', channel.udtAmount],
+            ['fundingTxHash', channel.fundingTxHash],
+            ['fundingOutputIndex', channel.fundingOutputIndex],
+            ['openBlock', channel.openBlock],
+            ['closeBlock', channel.closeBlock],
+            ['settlementBlock', channel.settlementBlock],
+            ['participants', channel.participants.join(', ')],
+          ]
+        ),
+        '',
+        '## Timeline',
+        '',
+        markdownTable(
+          ['event', 'blockNumber', 'txHash', 'timestamp'],
+          channel.timeline.map((event) => [
+            event.event,
+            event.blockNumber,
+            event.txHash,
+            event.timestamp,
+          ])
+        ),
+      ]);
+      return { status: 200, body };
+    }
+  }
+}

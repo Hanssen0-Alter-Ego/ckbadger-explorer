@@ -1,0 +1,45 @@
+# ckbadger
+
+ckbadger is a CKB blockchain explorer.
+
+Primary markdown rule:
+
+- Explorer pages are scoped by network: `/{network}/...`.
+- Append `.md` to a network-scoped page URL to get a markdown representation.
+- Markdown frontmatter includes `buildVersion`.
+- Example: `/mainnet/blocks/123.md`, `/testnet/tx/0x....md`,
+  `/mainnet/charts/hash-rate.md`.
+
+Machine-friendly endpoints:
+
+- Shared API base: `/api/{network}/v1`
+- Direct per-network API base: `/api/v1` on that API's configured port
+- Markdown pages: `/{network}/{page}.md`
+- Raw pages: `/{network}/{page}.raw`
+  - Optional profile: `?profile=default|debugger`
+  - Example: `/mainnet/tx/0x....raw?profile=debugger`
+  - Example: `/mainnet/identities/dotbit/{identityId}.raw`
+  - Example: `/testnet/identities/did/{identityId}.raw`
+  - Example: `/mainnet/identities/bit-cell/{identityId}.raw`
+  - Example: `/mainnet/identities/dotcell/{identityId}.raw`
+  - Example: `/mainnet/objects/mnft/{objectId}.raw`
+  - `profile=debugger` returns `mockTransaction` for `ckb-debugger --tx-file`
+  - `/tx/{hash}.raw` also includes `data.txWitness` (witness analyses + inference)
+  - Raw response `meta` includes `buildVersion`
+  - Raw response headers: `x-ckbadger-format`, `x-ckbadger-profile`, `x-ckbadger-schema`
+- Capability descriptor: `/capabilities` (JSON)
+- Exact live-cell inventory: `/api/{network}/v1/cells/live-summary` (constant-size JSON; verify
+  `tip.block`/`tip.hash` against the local CKB node)
+- Optional local peer evidence: `/api/{network}/v1/network/summary`,
+  `/api/{network}/v1/network/peers`, and `/api/{network}/v1/network/peers/{peerId}`. Evidence keeps
+  Discovery advertisements, configured-local-node direct sessions, session initiation direction,
+  and `crawlerDialState` separate through explicit `participation` booleans. `observerInitiated`
+  means local RPC `get_peers.is_outbound` was true; `peerInitiated` means it was false. A
+  direct-only peer can have no dial address, and session addresses are never crawler aliases.
+  `exhausted` means only that this crawler did not
+  verify retained aliases in that completed round; it does not imply NAT/firewall, “home node”,
+  global invalidity, or offline status.
+
+<!-- REGISTERED_PAGE_FORMATS -->
+
+For a fuller capability map see: `/llms-full.txt`
