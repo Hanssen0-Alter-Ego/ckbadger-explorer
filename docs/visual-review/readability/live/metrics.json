@@ -1,0 +1,32 @@
+[
+  {
+    "width": 320,
+    "client": 523,
+    "scroll": 2021,
+    "top": 1498,
+    "rows": 20,
+    "bounded": true,
+    "outside": false,
+    "doc": 320
+  },
+  {
+    "width": 390,
+    "client": 555,
+    "scroll": 2021,
+    "top": 1466,
+    "rows": 20,
+    "bounded": true,
+    "outside": false,
+    "doc": 390
+  },
+  {
+    "width": 1440,
+    "client": 555,
+    "scroll": 2021,
+    "top": 1466,
+    "rows": 20,
+    "bounded": true,
+    "outside": false,
+    "doc": 1440
+  }
+]
