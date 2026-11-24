@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { api, Block } from '@/lib/api';
-import { MempoolBlocks } from '@/components/mempool-blocks';
+import { OrderedPipeline } from './ordered-pipeline';
 
 interface PipelinePreviewProps {
   initialBlocks?: Block[];
@@ -76,19 +76,13 @@ export function PipelinePreview({ initialBlocks = [] }: PipelinePreviewProps) {
             <span className="text-emphasis">New Committed ({formatCount(committedCount)})</span>
           </p>
           <p className="border-base-border/60 bg-base-surface/70 text-text rounded-md border px-2 py-1 text-[11px] sm:text-right">
-            w {'->'} size | h {'->'} cycles | x {'->'} fee | y {'->'} fee rate
+            Aligned tiles · transaction order · known proposal links
           </p>
         </div>
       </div>
 
       {/* The section is an ordinary full-width block; the track needs no viewport-unit breakout. */}
-      <MempoolBlocks
-        latestBlocks={initialBlocks}
-        chrome="flat"
-        showHeader={false}
-        showTxnLens
-        legendMode="none"
-      />
+      <OrderedPipeline initialBlocks={initialBlocks} />
     </section>
   );
 }

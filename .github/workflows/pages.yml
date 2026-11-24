@@ -33,6 +33,7 @@ jobs:
           __tests__/components/site-footer.test.tsx __tests__/components/activities-stream-explorer.test.tsx
           __tests__/pages/inventory.test.tsx __tests__/pages/block-detail.test.tsx
           __tests__/components/mini-stats-cards.test.tsx __tests__/components/hex-display.test.tsx
+          __tests__/lib/ordered-pipeline.test.ts __tests__/components/pipeline-preview.test.tsx
       - name: Build and verify Next.js export
         env:
           PAGES_BASE: /${{ github.event.repository.name }}/

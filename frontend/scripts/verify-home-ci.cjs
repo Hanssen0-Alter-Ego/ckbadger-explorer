@@ -28,13 +28,20 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 server.listen(0, '127.0.0.1', () => {
-  const child = spawn(process.execPath, [path.join(__dirname, 'verify-home-containment.cjs')], {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      PREVIEW_ORIGIN: `http://127.0.0.1:${server.address().port}`,
-      DETERMINISTIC: '1',
-    },
-  });
-  child.on('exit', (code) => server.close(() => process.exit(code ?? 1)));
+  const scripts = ['verify-home-containment.cjs', 'verify-ordered-pipeline.cjs'];
+  function run(index) {
+    if (index === scripts.length) return server.close(() => process.exit(0));
+    const child = spawn(process.execPath, [path.join(__dirname, scripts[index])], {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        PREVIEW_ORIGIN: `http://127.0.0.1:${server.address().port}`,
+        DETERMINISTIC: '1',
+      },
+    });
+    child.on('exit', (code) =>
+      code === 0 ? run(index + 1) : server.close(() => process.exit(code ?? 1))
+    );
+  }
+  run(0);
 });

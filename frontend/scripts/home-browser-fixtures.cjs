@@ -11,7 +11,7 @@ exports.install = async (page, origin) => {
     if (url.origin !== origin)
       return route.fulfill({ status: 503, json: { error: 'offline fixture' } });
     if (!url.pathname.includes('/api/')) return route.continue();
-    if (url.pathname.endsWith('/blocks'))
+    if (url.pathname.endsWith('/v1/blocks'))
       return route.fulfill({
         json: {
           data: [

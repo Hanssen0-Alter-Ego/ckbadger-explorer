@@ -1,0 +1,47 @@
+[
+  {
+    "width": 320,
+    "mode": "populated",
+    "passed": true
+  },
+  {
+    "width": 320,
+    "mode": "empty",
+    "passed": true
+  },
+  {
+    "width": 320,
+    "mode": "error",
+    "passed": true
+  },
+  {
+    "width": 390,
+    "mode": "populated",
+    "passed": true
+  },
+  {
+    "width": 390,
+    "mode": "empty",
+    "passed": true
+  },
+  {
+    "width": 390,
+    "mode": "error",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "populated",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "empty",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "mode": "error",
+    "passed": true
+  }
+]

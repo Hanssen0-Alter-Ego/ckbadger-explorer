@@ -3,21 +3,7 @@ import { render, screen, within } from '../utils/test-utils';
 import { PipelinePreview } from '@/components/chain-wave/pipeline-preview';
 import { api, type Block } from '@/lib/api';
 
-vi.mock('@/components/mempool-blocks', () => ({
-  MempoolBlocks: ({
-    showTxnLens,
-    showHeader,
-    legendMode,
-  }: {
-    showTxnLens?: boolean;
-    showHeader?: boolean;
-    legendMode?: 'row' | 'none';
-  }) => (
-    <div data-testid="mempool-blocks">
-      lens:{String(showTxnLens)} header:{String(showHeader)} legend:{String(legendMode)}
-    </div>
-  ),
-}));
+vi.mock('@/components/chain-wave/ordered-pipeline', () => ({ OrderedPipeline: () => <div data-testid="ordered-pipeline" /> }));
 
 function mockBlock(number: number, txCount: number): Block {
   return {
@@ -89,11 +75,9 @@ describe('PipelinePreview', () => {
     const summaryRow = screen.getByTestId('pipeline-preview-summary-row');
     expect(within(summaryRow).getByText(/Mempool \(128\)/i)).toBeInTheDocument();
     expect(
-      within(summaryRow).getByText(/w -> size \| h -> cycles \| x -> fee \| y -> fee rate/i)
+      within(summaryRow).getByText(/Aligned tiles/i)
     ).toBeInTheDocument();
-    expect(screen.getByTestId('mempool-blocks')).toHaveTextContent('lens:true');
-    expect(screen.getByTestId('mempool-blocks')).toHaveTextContent('header:false');
-    expect(screen.getByTestId('mempool-blocks')).toHaveTextContent('legend:none');
+    expect(screen.getByTestId('ordered-pipeline')).toBeInTheDocument();
   });
 
   it('aligns the heading with the site container and renders the track without viewport-unit breakout', () => {
@@ -117,6 +101,6 @@ describe('PipelinePreview', () => {
     expect(headingWrapper).toHaveClass('mx-auto');
     expect(headingWrapper).toHaveClass('px-4');
 
-    expect(screen.getByTestId('mempool-blocks').closest('.container')).toBeNull();
+    expect(screen.getByTestId('ordered-pipeline').closest('.container')).toBeNull();
   });
 });
