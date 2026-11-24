@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/prepare-next.mjs && next dev site --webpack",
-    "build": "node scripts/prepare-next.mjs && next build site --webpack && node scripts/build-pages.mjs",
+    "build": "node scripts/prepare-next.mjs && next build site --webpack && node scripts/build-pages.mjs && node scripts/verify-color-css.mjs",
     "lint": "eslint app components hooks lib src",
     "type-check": "tsc --noEmit",
     "test": "vitest run",

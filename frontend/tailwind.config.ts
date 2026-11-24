@@ -25,33 +25,33 @@ export default {
       colors: {
         // Explorer surfaces inspired by the CCC App console. Keep chart categories distinct.
         base: {
-          void: 'var(--surface-recess)',
-          bg: 'var(--background)',
-          surface: 'var(--color-surface)',
-          elevated: 'var(--color-elevated)',
-          border: 'var(--color-border)',
-          'border-subtle': 'var(--color-border-subtle)',
+          void: 'rgb(var(--surface-recess-rgb) / <alpha-value>)',
+          bg: 'rgb(var(--background-rgb) / <alpha-value>)',
+          surface: 'rgb(var(--color-surface-rgb) / <alpha-value>)',
+          elevated: 'rgb(var(--color-elevated-rgb) / <alpha-value>)',
+          border: 'rgb(var(--color-border-rgb) / <alpha-value>)',
+          'border-subtle': 'rgb(var(--color-border-subtle-rgb) / <alpha-value>)',
         },
         text: {
-          bright: 'var(--foreground)',
-          DEFAULT: 'var(--text-body)',
-          dim: 'var(--text-muted)',
-          ghost: 'var(--text-muted)',
+          bright: 'rgb(var(--foreground-rgb) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--text-body-rgb) / <alpha-value>)',
+          dim: 'rgb(var(--text-muted-rgb) / <alpha-value>)',
+          ghost: 'rgb(var(--text-muted-rgb) / <alpha-value>)',
         },
         interactive: {
-          DEFAULT: 'var(--color-interactive)',
-          hover: 'var(--color-interactive-hover)',
+          DEFAULT: 'rgb(var(--color-interactive-rgb) / <alpha-value>)',
+          hover: 'rgb(var(--color-interactive-hover-rgb) / <alpha-value>)',
           muted: '#5bcefa20',
           dim: '#4aa8d0',
         },
         emphasis: {
-          DEFAULT: 'var(--color-interactive)',
+          DEFAULT: 'rgb(var(--color-interactive-rgb) / <alpha-value>)',
           dim: '#d0a840',
           glow: '#5bcefa40',
-          bright: 'var(--color-interactive-hover)',
+          bright: 'rgb(var(--color-interactive-hover-rgb) / <alpha-value>)',
         },
         positive: {
-          DEFAULT: 'var(--tone-positive)',
+          DEFAULT: 'rgb(var(--tone-positive-rgb) / <alpha-value>)',
           dim: '#1fb88a',
           bright: '#3ef0b8',
         },
@@ -61,18 +61,18 @@ export default {
           bright: '#f06668',
         },
         warning: {
-          DEFAULT: 'var(--tone-warning)',
+          DEFAULT: 'rgb(var(--tone-warning-rgb) / <alpha-value>)',
           dim: '#d0a840',
           bright: '#f8d878',
         },
         info: {
-          DEFAULT: 'var(--color-interactive)',
+          DEFAULT: 'rgb(var(--color-interactive-rgb) / <alpha-value>)',
           dim: '#4aa8d0',
           bright: '#88ddf8',
         },
         // Chinese traditional named colors
         jade: {
-          DEFAULT: 'var(--color-interactive)',
+          DEFAULT: 'rgb(var(--color-interactive-rgb) / <alpha-value>)',
           dim: '#50b2d6',
         },
         rouge: {
@@ -80,11 +80,11 @@ export default {
           dim: '#c04048',
         },
         aqua: {
-          DEFAULT: 'var(--color-interactive)',
+          DEFAULT: 'rgb(var(--color-interactive-rgb) / <alpha-value>)',
           dim: '#4aa8d0',
         },
         gold: {
-          DEFAULT: 'var(--tone-warning)',
+          DEFAULT: 'rgb(var(--tone-warning-rgb) / <alpha-value>)',
           dim: '#d0a840',
         },
         lavender: {
@@ -103,7 +103,7 @@ export default {
         // Chart accent palette (12 colors)
         'accent-1': '#2edba3',
         'accent-2': '#e8555a',
-        'accent-3': 'var(--color-interactive)',
+        'accent-3': 'rgb(var(--color-interactive-rgb) / <alpha-value>)',
         'accent-4': '#f2c55c',
         'accent-5': '#b8a9e8',
         'accent-6': '#d4883a',
@@ -115,8 +115,8 @@ export default {
         'accent-12': '#b07028',
       },
       fontFamily: {
-        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        mono: ['rgb(var(--font-mono-rgb) / <alpha-value>)', 'ui-monospace', 'monospace'],
+        display: ['rgb(var(--font-display-rgb) / <alpha-value>)', 'system-ui', 'sans-serif'],
       },
       fontFeatureSettings: {
         tnum: '"tnum"',

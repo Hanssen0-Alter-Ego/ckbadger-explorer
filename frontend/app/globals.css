@@ -4,16 +4,24 @@
 
 :root {
   color-scheme: dark;
-  --foreground: #e6eef2;
-  --background: #090d10;
-  --color-surface: #11181c;
-  --color-elevated: #182228;
-  --color-border: #344149;
-  --color-border-subtle: #28343a;
+  --foreground-rgb: 230 238 242;
+  --foreground: rgb(var(--foreground-rgb));
+  --background-rgb: 9 13 16;
+  --background: rgb(var(--background-rgb));
+  --color-surface-rgb: 17 24 28;
+  --color-surface: rgb(var(--color-surface-rgb));
+  --color-elevated-rgb: 24 34 40;
+  --color-elevated: rgb(var(--color-elevated-rgb));
+  --color-border-rgb: 52 65 73;
+  --color-border: rgb(var(--color-border-rgb));
+  --color-border-subtle-rgb: 40 52 58;
+  --color-border-subtle: rgb(var(--color-border-subtle-rgb));
   --color-emphasis: #5bcefa;
   --color-emphasis-dim: #50b2d6;
-  --color-interactive: #5bcefa;
-  --color-interactive-hover: #80ddff;
+  --color-interactive-rgb: 91 206 250;
+  --color-interactive: rgb(var(--color-interactive-rgb));
+  --color-interactive-hover-rgb: 128 221 255;
+  --color-interactive-hover: rgb(var(--color-interactive-hover-rgb));
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', 'Roboto Mono', ui-monospace, monospace;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
 }
@@ -711,28 +719,23 @@ body,
 /* CCC App primitives, adapted to the existing explorer layout.
    Reference: packages/app/src/app/styles/{tokens,module-controls,workspace,shell}.css */
 :root {
-  --tone-warning: #f2c55c;
-  --tone-positive: #2edba3;
-  --surface-recess: #070a0c;
-  --text-body: #b0bdc5;
-  --text-muted: #89979f;
+  --tone-warning-rgb: 242 197 92;
+  --tone-warning: rgb(var(--tone-warning-rgb));
+  --tone-positive-rgb: 46 219 163;
+  --tone-positive: rgb(var(--tone-positive-rgb));
+  --surface-recess-rgb: 7 10 12;
+  --surface-recess: rgb(var(--surface-recess-rgb));
+  --text-body-rgb: 176 189 197;
+  --text-body: rgb(var(--text-body-rgb));
+  --text-muted-rgb: 137 151 159;
+  --text-muted: rgb(var(--text-muted-rgb));
   --mechanical-ease: cubic-bezier(.22, 1, .36, 1);
   --font-display: Arial, Helvetica, sans-serif;
   --font-mono: 'Courier New', ui-monospace, monospace;
 }
-@media (prefers-color-scheme: light) {
-  :root:not(.dark) {
-    color-scheme: light;
-    --tone-warning: #875e00;
-    --tone-positive: #007950;
-    --background: #f3f6f7; --foreground: #16232b;
-    --color-surface: #ffffff; --color-elevated: #e7eef1;
-    --surface-recess: #eaf0f3; --color-border: #91a5af;
-    --color-border-subtle: #cad6dc; --text-body: #324b58;
-    --text-muted: #4c6572; --color-interactive: #006c95;
-    --color-interactive-hover: #004d6b; --color-emphasis: #006c95;
-  }
-}
+/* Keep the supported dark presentation for both OS preferences until all
+   legacy semantic foregrounds and chart colors have a verified light palette. */
+
 body, #root .min-h-screen.bg-base-bg {
   background-image: linear-gradient(to right, color-mix(in srgb, var(--color-border) 12%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--color-border) 12%, transparent) 1px, transparent 1px);
