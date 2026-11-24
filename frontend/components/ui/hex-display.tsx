@@ -52,13 +52,12 @@ const HexChar = memo(function HexChar({
   return (
     <span
       className={cn(
-        'hex-char inline-block cursor-default transition-all duration-100',
+        'hex-char inline-block cursor-default transition-colors duration-150',
         'font-mono tabular-nums',
         isHovered ? colorClasses[effectiveColor].hover : colorClasses[effectiveColor].base
       )}
       style={{
-        textShadow: isHovered ? '0 0 6px currentColor' : 'none',
-        transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+        backgroundColor: isHovered ? 'var(--color-elevated)' : 'transparent',
       }}
       onMouseEnter={() => onHover(index)}
       onMouseLeave={() => onHover(null)}

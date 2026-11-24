@@ -719,9 +719,9 @@ body,
 /* CCC App primitives, adapted to the existing explorer layout.
    Reference: packages/app/src/app/styles/{tokens,module-controls,workspace,shell}.css */
 :root {
-  --tone-warning-rgb: 242 197 92;
+  --tone-warning-rgb: 208 189 150;
   --tone-warning: rgb(var(--tone-warning-rgb));
-  --tone-positive-rgb: 46 219 163;
+  --tone-positive-rgb: 158 185 172;
   --tone-positive: rgb(var(--tone-positive-rgb));
   --surface-recess-rgb: 7 10 12;
   --surface-recess: rgb(var(--surface-recess-rgb));
@@ -778,3 +778,26 @@ dialog[open] { border-radius: 0; border: 1px solid var(--color-border); animatio
 }
 
 .instrument-panel { position: relative; }
+
+/* Match the rendered CCC reference: neutral ink dominates; signal marks interaction. */
+.explorer-console { box-shadow: none; border-bottom-color: var(--foreground); }
+.instrument-panel::before { display: none; }
+.instrument-panel-heading { background: var(--color-surface); }
+.instrument-panel-heading > div > div { color: var(--foreground); }
+.instrument-panel, .terminal-card { border-color: #4a5b64; }
+.terminal-card { background: var(--color-surface); box-shadow: none; border-radius: 0; }
+.terminal-card-header { background: var(--color-surface); border-color: #4a5b64; }
+.terminal-card::before, .terminal-border-glow::after, .row-scan::after,
+.ambient-glow::before, .scanline-overlay, .crt-scanlines { display: none; }
+.glow-neon, .glow-soft, .neon-flicker, .storage-text-gem, .storage-text-split {
+  text-shadow: none; filter: none; background-image: none; -webkit-text-fill-color: currentColor;
+}
+.live-dot, .indicator-light { background: #89979f; box-shadow: none; animation: none; border-radius: 0; }
+.indicator-light-gold { background: var(--tone-warning); }
+.storage-border-ckb, .storage-border-both, .preview-ambient-glow, .byte-hover-breathe { animation: none; box-shadow: none; }
+
+main .shadow-glow, main .shadow-glow-jade, main .shadow-glow-gold { box-shadow: none; }
+
+.instrument-search input:not(:focus) { text-overflow: ellipsis; }
+.neon-bar-left::before { background: var(--color-border); box-shadow: none; }
+@media (max-width: 640px) { .home-mini-chart text { font-size: 16px; } }

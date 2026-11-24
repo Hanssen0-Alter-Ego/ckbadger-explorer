@@ -46,7 +46,7 @@ export function KnowledgeSizeTrend() {
         {hovered && (
           <div className="font-mono text-[10px] tabular-nums">
             <span className="text-text-dim">{hovered.date}</span>{' '}
-            <span className={hovered.delta >= 0 ? 'text-jade' : 'text-[#e8555a]'}>
+            <span className={hovered.delta >= 0 ? 'text-jade' : 'text-negative'}>
               {hovered.delta >= 0 ? '+' : ''}
               {hovered.delta.toFixed(2)} CKB
             </span>
@@ -63,7 +63,7 @@ export function KnowledgeSizeTrend() {
               className="flex-1 cursor-crosshair rounded-t-sm transition-opacity duration-100"
               style={{
                 height: `${Math.max((Math.abs(d.delta) / maxDelta) * 100, 4)}%`,
-                backgroundColor: d.delta >= 0 ? CHART_PRIMARY_COLOR : '#e8555a',
+                backgroundColor: d.delta >= 0 ? CHART_PRIMARY_COLOR : '#d6a1a9',
                 opacity: hoveredIdx !== null && hoveredIdx !== i ? 0.3 : 0.8,
               }}
               onMouseEnter={() => setHoveredIdx(i)}

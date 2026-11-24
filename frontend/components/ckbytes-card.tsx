@@ -105,9 +105,9 @@ export function CKBytesCard({ stats }: CKBytesCardProps) {
       label: 'DAO',
       value: dao,
       pct: (dao / circulating) * 100,
-      color: 'bg-gold/70',
-      hoverColor: 'bg-gold',
-      textColor: 'text-gold',
+      color: 'bg-text/70',
+      hoverColor: 'bg-text-bright',
+      textColor: 'text-text-bright',
     },
   ];
 

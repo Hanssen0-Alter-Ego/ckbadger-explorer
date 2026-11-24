@@ -33,8 +33,8 @@ function BarChart({ data, color, height = 48 }: BarChartProps) {
   }
 
   const maxValue = Math.max(...data.map((d) => d.value), 1);
-  const barColor = color === 'green' ? 'bg-jade-dim' : 'bg-warning-dim';
-  const barColorHover = color === 'green' ? 'bg-jade' : 'bg-warning';
+  const barColor = color === 'green' ? 'bg-text/80' : 'bg-text-dim/60';
+  const barColorHover = color === 'green' ? 'bg-jade' : 'bg-text-bright';
 
   return (
     <div className="relative" style={{ height }}>
@@ -64,7 +64,7 @@ function BarChart({ data, color, height = 48 }: BarChartProps) {
                   <div
                     className={cn(
                       'font-mono font-bold',
-                      color === 'green' ? 'text-emphasis' : 'text-warning'
+                      color === 'green' ? 'text-text-bright' : 'text-text-bright'
                     )}
                   >
                     {formatNumber(point.value)}
@@ -94,7 +94,7 @@ function TxStatWidget({ label, value, data, color }: TxStatWidgetProps) {
         <span
           className={cn(
             'font-mono text-xl font-bold tabular-nums',
-            color === 'green' ? 'text-emphasis' : 'text-warning'
+            color === 'green' ? 'text-text-bright' : 'text-text-bright'
           )}
         >
           {formatNumber(value)}

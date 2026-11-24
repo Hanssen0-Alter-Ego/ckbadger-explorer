@@ -87,16 +87,16 @@ const WITNESS_SEGMENT_TONES = [
       'rounded-none bg-warning/30 text-warning-50 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.5)]',
   },
   {
-    dot: 'bg-[#9a5090]',
-    activePill: 'border-[#9a5090]/70 bg-[#9a5090]/15 text-[#7a4070]',
-    valueText: 'text-[#7a4070]',
-    byte: 'rounded-none bg-[#9a5090]/15 text-[#7a4070]',
-    byteActive: 'rounded-none bg-[#9a5090]/25 text-[#6a3060] ring-1 ring-[#9a5090]/70',
+    dot: 'bg-[#a9b3c2]',
+    activePill: 'border-[#a9b3c2]/70 bg-[#a9b3c2]/15 text-[#94a2b4]',
+    valueText: 'text-[#94a2b4]',
+    byte: 'rounded-none bg-[#a9b3c2]/15 text-[#94a2b4]',
+    byteActive: 'rounded-none bg-[#a9b3c2]/25 text-[#bbc7d7] ring-1 ring-[#a9b3c2]/70',
     byteHover:
-      'transition-colors duration-150 ring-1 ring-[#9a5090]/80',
-    asciiActive: 'rounded-none bg-[#9a5090]/20 text-[#6a3060]',
+      'transition-colors duration-150 ring-1 ring-[#a9b3c2]/80',
+    asciiActive: 'rounded-none bg-[#a9b3c2]/20 text-[#bbc7d7]',
     asciiHover:
-      'rounded-none bg-[#9a5090]/30 text-[#6a3060] shadow-[inset_0_0_0_1px_rgba(154,80,144,0.5)]',
+      'rounded-none bg-[#a9b3c2]/30 text-[#bbc7d7] shadow-[inset_0_0_0_1px_rgba(169,179,194,0.5)]',
   },
 ] as const;
 function getWitnessSegmentTone(segmentIndex: number) {

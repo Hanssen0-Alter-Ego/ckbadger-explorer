@@ -59,3 +59,12 @@ for (const cls of classes)
 console.log(
   `Verified ${classes.length} variable-backed color aliases support slash opacity.`,
 );
+
+// Font variables must never be rewritten as color-channel expressions.
+for (const name of ['mono', 'display']) {
+  const rule = rules.get('.font-' + name);
+  assert.ok(rule, `Missing font-${name}`);
+  const value = rule.nodes.find(n => n.prop === 'font-family')?.value;
+  assert.ok(value?.includes(`var(--font-${name})`) && !value.includes('rgb('), `Invalid font-${name}: ${value}`);
+}
+console.log('Verified mono/display font variables remain font-family values.');

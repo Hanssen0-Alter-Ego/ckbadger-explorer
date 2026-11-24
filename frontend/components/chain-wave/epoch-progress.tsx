@@ -1,6 +1,5 @@
 'use client';
 
-import { cn } from '@/lib/utils';
 
 interface EpochProgressProps {
   epochNumber: number;
@@ -28,7 +27,7 @@ export function EpochProgress({
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-baseline gap-3">
           <span className="text-text-dim font-mono text-xs uppercase tracking-wider">Epoch</span>
-          <span className="text-gold font-mono text-2xl font-bold tabular-nums">
+          <span className="text-text-bright font-mono text-2xl font-bold tabular-nums">
             {epochNumber.toLocaleString()}
           </span>
           <span className="bg-base-elevated text-text rounded px-2 py-0.5 font-mono text-xs tabular-nums">
@@ -40,23 +39,14 @@ export function EpochProgress({
             <span className="text-text-dim font-mono text-xs uppercase tracking-wider">
               Est. Time
             </span>
-            <span className="text-warning font-mono tabular-nums">{estimatedTimeRemaining}</span>
+            <span className="text-text font-mono tabular-nums">{estimatedTimeRemaining}</span>
           </div>
         )}
       </div>
 
       <div className="bg-base-elevated relative h-3 overflow-hidden rounded-none sm:h-4">
         <div
-          className={cn(
-            'absolute inset-y-0 left-0 rounded-none transition-all duration-1000',
-            progress < 25
-              ? 'from-gold-dim to-gold-dim bg-gradient-to-r'
-              : progress < 50
-                ? 'from-gold-dim to-gold bg-gradient-to-r'
-                : progress < 75
-                  ? 'from-gold to-warning-dim bg-gradient-to-r'
-                  : 'from-warning-dim to-warning bg-gradient-to-r'
-          )}
+          className="absolute inset-y-0 left-0 rounded-none bg-text-dim transition-[width] duration-200"
           style={{ width: `${progressClamped}%` }}
         />
         <div

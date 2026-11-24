@@ -138,7 +138,7 @@ export function TerminalPanelFooter({ children, className }: TerminalPanelFooter
     <div
       className={cn(
         'border-base-border border-t px-3 py-2',
-        'to-base-elevated/30 bg-gradient-to-r from-transparent',
+        'bg-base-surface',
         className
       )}
     >
@@ -156,9 +156,9 @@ export function TerminalDivider({ className, label }: TerminalDividerProps) {
   if (label) {
     return (
       <div className={cn('flex items-center gap-3 py-2', className)}>
-        <div className="via-base-border h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />
+        <div className="bg-base-border h-px flex-1" />
         <span className="text-text-dim font-mono text-xs uppercase tracking-widest">{label}</span>
-        <div className="via-base-border h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />
+        <div className="bg-base-border h-px flex-1" />
       </div>
     );
   }
@@ -166,7 +166,7 @@ export function TerminalDivider({ className, label }: TerminalDividerProps) {
   return (
     <div
       className={cn(
-        'via-base-border h-px bg-gradient-to-r from-transparent to-transparent',
+        'bg-base-border h-px',
         className
       )}
     />

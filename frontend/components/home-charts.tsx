@@ -44,7 +44,7 @@ function MiniLineChart({ data, color = CHART_PRIMARY_COLOR }: MiniChartProps) {
     }
 
     const ticks = Array.from({ length: 4 }, (_, i) => min + ((max - min) / 3) * i);
-    const xTickCount = Math.min(6, data.length);
+    const xTickCount = Math.min(3, data.length);
     const xTickIndices = Array.from({ length: xTickCount }, (_, i) =>
       Math.floor((i / (xTickCount - 1 || 1)) * (data.length - 1))
     );
@@ -71,6 +71,7 @@ function MiniLineChart({ data, color = CHART_PRIMARY_COLOR }: MiniChartProps) {
   };
 
   const formatXLabel = (label: string) => {
+    if (/^\d{4}-\d{2}-\d{2}/.test(label)) return label.slice(5, 10).replace('-', '/');
     const parts = label.split('/');
     if (parts.length >= 3) {
       return `${parts[1]}/${parts[2]}`;
@@ -83,7 +84,7 @@ function MiniLineChart({ data, color = CHART_PRIMARY_COLOR }: MiniChartProps) {
   }
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
+    <svg viewBox={`0 0 ${width} ${height}`} className="home-mini-chart w-full">
       {yTicks.map((tick, i) => (
         <g key={`y-${i}`}>
           <line
@@ -112,7 +113,7 @@ function MiniLineChart({ data, color = CHART_PRIMARY_COLOR }: MiniChartProps) {
           key={`x-${idx}`}
           x={x}
           y={height - 5}
-          textAnchor="middle"
+          textAnchor={idx === data.length - 1 ? "end" : "middle"}
           className="fill-text-dim font-mono tabular-nums"
           fontSize="10"
         >
@@ -158,7 +159,7 @@ function ChartCard({
             {leftLabel}
           </div>
           <div
-            className={`text-emphasis font-mono text-xl font-bold tabular-nums ${isLoading ? 'animate-pulse' : ''}`}
+            className={`text-text-bright font-mono text-xl font-bold tabular-nums ${isLoading ? 'animate-pulse' : ''}`}
           >
             {leftValue}
           </div>
@@ -168,7 +169,7 @@ function ChartCard({
             {rightLabel}
           </div>
           <div
-            className={`text-warning font-mono text-xl font-bold tabular-nums ${isLoading ? 'animate-pulse' : ''}`}
+            className={`text-text-bright font-mono text-xl font-bold tabular-nums ${isLoading ? 'animate-pulse' : ''}`}
           >
             {rightValue}
           </div>
