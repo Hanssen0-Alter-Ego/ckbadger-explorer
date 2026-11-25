@@ -77,9 +77,15 @@ exports.install = async (page, mode = 'populated') => {
       data = index && mode !== 'empty' ? [{
         proposalIndex: 0,
         proposalId: proposal(index, block.number).proposalId,
-        committedTxHash: index === 104 ? hash(index) : null,
+        committedTxHash: index === 104 ? hash(10001) : null,
         committedBlockNumber: index === 104 ? 100 : null,
-      }] : [];
+      }, ...(index === 104 ? [{
+        proposalIndex: 1,
+        proposalId: proposal(105, block.number).proposalId,
+        // The full hash exists, but not in the API's reported commitment block.
+        committedTxHash: hash(10002),
+        committedBlockNumber: 99,
+      }] : [])] : [];
     } else if (p.endsWith('/blocks'))
       data = {
         data: mode === 'empty' ? [] : blocks,

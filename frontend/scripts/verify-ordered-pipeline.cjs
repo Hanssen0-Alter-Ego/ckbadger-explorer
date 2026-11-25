@@ -66,9 +66,29 @@ const { install } = require('./pipeline-browser-fixtures.cjs');
         assert.equal(await historical.getAttribute('data-proposal-target'), null);
         assert.equal(await historical.locator('[data-pipeline-glyph="proposal-marker"]')
           .evaluate((el) => getComputedStyle(el).borderRadius), "9999px");
-        await historical.focus();
+        await historical.hover();
+        await p.getByTestId('proposal-connector').waitFor();
+        const historicalTx = tiles.nth(1);
+        await historicalTx.and(root.locator('[data-pipeline-linked="true"]')).waitFor();
+        assert.notEqual(await historicalTx.evaluate((el) => getComputedStyle(el).boxShadow), 'none');
+        const txRect = await historicalTx.boundingBox();
+        const historyPath = await p.getByTestId('proposal-connector').evaluate((svg) => {
+          const values = svg.querySelector('path').getAttribute('d').match(/-?[\d.]+/g).map(Number);
+          const bounds = svg.getBoundingClientRect();
+          return { x: values[3] + bounds.x, y: values[4] + bounds.y };
+        });
+        assert.ok(Math.abs(historyPath.x - (txRect.x + txRect.width / 2)) < 1);
+        assert.ok(Math.abs(historyPath.y - (txRect.y + txRect.height / 2)) < 1);
         assert.ok((await root.getByRole('link', {name: 'Open transaction'})
-          .getAttribute('href')).endsWith('68'));
+          .getAttribute('href')).endsWith('2711'));
+        await p.keyboard.press('Escape');
+        await historicalTx.focus();
+        await historical.and(root.locator('[data-pipeline-linked="true"]')).waitFor();
+        await p.keyboard.press('Escape');
+        await root.locator('[data-pipeline-block="98"]')
+          .getByRole("button", { name: /committed in block 99/ }).hover();
+        assert.equal(await p.getByTestId('proposal-connector').count(), 0);
+        assert.equal(await tiles.nth(2).getAttribute('data-pipeline-linked'), null);
         await p.keyboard.press('Escape');
         const pending = root
           .locator(

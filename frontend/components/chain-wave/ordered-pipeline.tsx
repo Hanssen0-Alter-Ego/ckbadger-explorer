@@ -1,11 +1,10 @@
 "use client";
-import { useQueries, useQuery } from "@tanstack/react-query";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "@/components/ui/link";
 import { api, Block, PendingProposal } from "@/lib/api";
 import {
   fullHash,
-  matchedProposal,
   nextBlockCandidates,
   orderCommitted,
   orderProposals,
@@ -81,6 +80,10 @@ export function OrderedPipeline({
   const chain = [...(blocks.data?.data ?? [])]
     .sort((a, b) => b.number - a.number)
     .slice(0, 10);
+  const queryClient = useQueryClient();
+  const tip = chain[0]?.number;
+  const tipHash = chain[0]?.hash;
+  const previousTip = useRef(tipHash);
   const txQueries = useQueries({
     queries: chain.map((block) => ({
       queryKey: ["mempool-blocks-lens-block-transactions", block.number],
@@ -97,13 +100,34 @@ export function OrderedPipeline({
       staleTime: 15000,
     })),
   });
+  useEffect(() => {
+    if (tip == null || tipHash == null || previousTip.current === tipHash) return;
+    const previous = previousTip.current;
+    previousTip.current = tipHash;
+    if (previous == null) return;
+    // A proposal's block hash is stable while its committed fields can change.
+    // Recheck only unresolved records still in or just leaving the commit window.
+    chain.forEach((block, i) => {
+      const age = tip - block.number;
+      if (
+        age >= 2 &&
+        age <= 10 &&
+        proposalQueries[i].data?.some((marker) => !fullHash(marker.committedTxHash))
+      ) {
+        void queryClient.invalidateQueries({
+          queryKey: ["pipeline-block-proposals", block.hash],
+          exact: true,
+        });
+      }
+    });
+  }, [tip, tipHash, queryClient]);
   const proposed = orderProposals(proposals.data?.proposals ?? []);
   const nextCount = prediction.data?.pendingBlocks[0]?.transactionCount;
   const candidates =
     proposals.data && nextCount !== undefined
       ? nextBlockCandidates(proposed, proposals.data.tipBlockNumber, nextCount)
       : [];
-  const visibleMarkers = proposalQueries
+  const visibleData = [...proposalQueries, ...txQueries]
     .map((query) => query.dataUpdatedAt)
     .join(":");
   const proposedHashes = new Set(proposed.map((p) => p.fullTxHash));
@@ -114,40 +138,53 @@ export function OrderedPipeline({
   const [pinned, setPinned] = useState<Selection | null>(null);
   const active = pinned ?? selected;
   const track = useRef<HTMLDivElement>(null);
-  const [line, setLine] = useState<number[] | null>(null);
+  const [connector, setConnector] = useState<{
+    points: number[];
+    keys: string[];
+  } | null>(null);
+  const line = connector?.points;
   useLayoutEffect(() => {
     const node = track.current;
     const measure = () => {
-      if (
-        !node ||
-        !active?.proposal ||
-        !matchedProposal(
-          active.proposal,
-          chain.map((b) => b.number),
-        )
-      ) {
-        setLine(null);
+      if (!node || !active) {
+        setConnector(null);
         return;
       }
-      const source = [
-        ...node.querySelectorAll<HTMLElement>("[data-proposal-source]"),
-      ].find((e) => e.dataset.proposalSource === active.key);
-      const target = [
-        ...node.querySelectorAll<HTMLElement>("[data-proposal-target]"),
-      ].find((e) => e.dataset.proposalTarget === active.key);
+      const tiles = [...node.querySelectorAll<HTMLElement>("[data-pipeline-item]")];
+      const selectedTile = tiles.find((el) => el.dataset.pipelineItem === active.key);
+      const historyDots = tiles.filter((el) => el.dataset.committedTarget);
+      // The API supplies both the full transaction hash and commitment height.
+      // Match that exact tile, not a neighboring block or a short proposal ID.
+      const committedDot = selectedTile?.dataset.committedTarget
+        ? selectedTile
+        : historyDots.find((el) => el.dataset.committedTarget === active.key);
+      const committedTile = committedDot
+        ? tiles.find((el) => el.dataset.pipelineItem === committedDot.dataset.committedTarget)
+        : undefined;
+      const pendingKey = fullHash(active.hash)
+        ? selectedTile?.dataset.proposalSource ?? selectedTile?.dataset.proposalTarget
+        : undefined;
+      const source = committedDot
+        ?? (pendingKey && tiles.find((el) => el.dataset.proposalSource === pendingKey));
+      const target = committedDot
+        ? committedTile
+        : pendingKey && tiles.find((el) => el.dataset.proposalTarget === pendingKey);
       if (!source || !target) {
-        setLine(null);
+        setConnector(null);
         return;
       }
       const a = source.getBoundingClientRect(),
         b = target.getBoundingClientRect(),
         r = node.getBoundingClientRect();
-      setLine([
-        a.x + a.width / 2 - r.x,
-        a.y - r.y,
-        b.x + b.width / 2 - r.x,
-        b.y + b.height / 2 - r.y,
-      ]);
+      setConnector({
+        points: [
+          a.x + a.width / 2 - r.x,
+          a.y - r.y,
+          b.x + b.width / 2 - r.x,
+          b.y + b.height / 2 - r.y,
+        ],
+        keys: [source.dataset.pipelineItem!, target.dataset.pipelineItem!],
+      });
     };
     measure();
     const resize = new ResizeObserver(measure);
@@ -157,7 +194,8 @@ export function OrderedPipeline({
       resize.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [active, blocks.data, proposals.data, visibleMarkers]);
+  }, [active, blocks.data, proposals.data, visibleData]);
+  const isLinked = (key: string) => connector?.keys.includes(key) ?? false;
   function mark(
     s: Selection,
     kind: GlyphKind,
@@ -169,6 +207,8 @@ export function OrderedPipeline({
         key={s.key}
         type="button"
         data-pipeline-tile={s.key}
+        data-pipeline-item={s.key}
+        data-pipeline-linked={isLinked(s.key) || undefined}
         {...extra}
         aria-label={s.text}
         aria-pressed={pinned?.key === s.key}
@@ -177,7 +217,7 @@ export function OrderedPipeline({
         onFocus={() => setSelected(s)}
         onBlur={() => setSelected(null)}
         onClick={() => setPinned(pinned?.key === s.key ? null : s)}
-        className={`grid h-6 w-6 place-items-center transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive sm:h-[15px] sm:w-[15px] ${on ? "bg-interactive/25" : "hover:bg-interactive/[.15]"}`}
+        className={`grid h-6 w-6 place-items-center transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive sm:h-[15px] sm:w-[15px] ${isLinked(s.key) ? "bg-interactive/40 ring-1 ring-interactive" : on ? "bg-interactive/25" : "hover:bg-interactive/[.15]"}`}
       >
         <PipelineGlyph
           kind={kind}
@@ -341,9 +381,7 @@ export function OrderedPipeline({
                           marker.committedTxHash === p.fullTxHash),
                     );
                     const selection = {
-                      key: live
-                        ? proposalKey(live)
-                        : `proposal:${b.hash}:${marker.proposalIndex}`,
+                      key: `proposal:${b.hash}:${marker.proposalIndex}`,
                       hash: marker.committedTxHash ?? live?.fullTxHash,
                       proposal: live,
                       text: `Proposal ${marker.proposalId} in block ${b.number}${
@@ -356,7 +394,14 @@ export function OrderedPipeline({
                       <button
                         key={selection.key}
                         type="button"
-                        data-proposal-target={live ? selection.key : undefined}
+                        data-pipeline-item={selection.key}
+                        data-pipeline-linked={isLinked(selection.key) || undefined}
+                        data-proposal-target={live ? proposalKey(live) : undefined}
+                        data-committed-target={
+                          fullHash(marker.committedTxHash) && marker.committedBlockNumber != null
+                            ? `block:${marker.committedBlockNumber}:${marker.committedTxHash.toLowerCase()}`
+                            : undefined
+                        }
                         aria-label={selection.text}
                         aria-pressed={pinned?.key === selection.key}
                         onFocus={() => setSelected(selection)}
@@ -366,7 +411,7 @@ export function OrderedPipeline({
                         onClick={() => setPinned(pinned?.key === selection.key ? null : selection)}
                         className="grid h-6 w-6 shrink-0 place-items-center focus-visible:outline focus-visible:outline-interactive sm:h-2 sm:w-2"
                       >
-                        <PipelineGlyph kind="proposal-marker" className="h-2 w-2" />
+                        <PipelineGlyph kind="proposal-marker" className={`h-2 w-2 ${isLinked(selection.key) ? "ring-2 ring-interactive" : ""}`} />
                       </button>
                     );
                   })}
@@ -381,7 +426,7 @@ export function OrderedPipeline({
                   {txs.slice(0, 20).map((t) =>
                     mark(
                       {
-                        key: `block:${b.number}:${t.hash}`,
+                        key: `block:${b.number}:${t.hash.toLowerCase()}`,
                         hash: t.hash,
                         text: `${t.isCellbase ? "Cellbase" : "Transaction"} ${t.index}, ${t.hash}, ${t.txSize ?? "unknown"} bytes, fee ${t.fee} sh, cycles ${t.cycles ?? "unknown"}`,
                       },
