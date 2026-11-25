@@ -83,7 +83,7 @@ export function ChartPage({
 
         <TerminalPanel>
           <TerminalPanelHeader indicator="active">{title}</TerminalPanelHeader>
-          <TerminalPanelContent className="p-6">
+          <TerminalPanelContent className="p-3 sm:p-6">
             {isLoading && (
               <div className="border-base-border bg-base-surface/50 h-96 animate-pulse rounded border" />
             )}
@@ -103,25 +103,29 @@ export function ChartPage({
                   chartType={chartType}
                   markers={markers}
                 />
-                <div className="mt-6 flex items-center justify-center gap-6 text-sm">
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm sm:mt-6 sm:gap-6">
                   <div className="flex items-center gap-2">
                     <span
                       aria-hidden="true"
                       style={{ backgroundColor: CHART_PRIMARY_COLOR }}
                       className={
-                        chartType === 'bar' ? 'h-3 w-3 rounded' : 'h-0.5 w-4'
+                        chartType === 'bar' ? 'h-3 w-3 shrink-0 rounded' : 'h-0.5 w-4 shrink-0'
                       }
                     />
-                    <span className="text-text-dim">{data.yAxisLabel}</span>
+                    <span className="text-text">{data.yAxisLabel}</span>
                   </div>
                   {chartType === 'line' && data.y2AxisLabel && (
                     <div className="flex items-center gap-2">
-                      <span aria-hidden="true" className="h-0.5 w-4" style={{ backgroundColor: CHART_SECONDARY_COLOR }} />
-                      <span className="text-text-dim">{data.y2AxisLabel}</span>
+                      <span
+                        aria-hidden="true"
+                        className="h-0.5 w-4 shrink-0"
+                        style={{ backgroundColor: CHART_SECONDARY_COLOR }}
+                      />
+                      <span className="text-text">{data.y2AxisLabel}</span>
                     </div>
                   )}
                 </div>
-                <div className="text-text-dim mt-4 text-center font-mono text-xs">
+                <div className="text-text-dim mt-3 text-center font-mono text-xs leading-relaxed sm:mt-4">
                   Drag to select range • Scroll to zoom • Middle-click drag to pan • Click Reset to
                   restore
                 </div>

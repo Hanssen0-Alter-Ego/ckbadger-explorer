@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo, useId } from 'react';
+import { useState, useRef, useCallback, useMemo, useId, useEffect } from 'react';
 import { ChartDataPoint } from '@/lib/api';
 import {
   CHART_PRIMARY_COLOR,
@@ -72,12 +72,27 @@ export function LineChart({
   const [zoomRange, setZoomRange] = useState<[number, number] | null>(null);
   const [panStart, setPanStart] = useState<{ x: number; range: [number, number] } | null>(null);
   const [useLogScale, setUseLogScale] = useState(defaultLogScale);
+  const [isCompact, setIsCompact] = useState(false);
 
-  const width = 600;
-  const height = chartHeightProp;
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mql = window.matchMedia('(max-width: 639px)');
+    const updateCompact = () => setIsCompact(mql.matches);
+    updateCompact();
+    mql.addEventListener?.('change', updateCompact);
+    return () => mql.removeEventListener?.('change', updateCompact);
+  }, []);
+
+  const width = isCompact ? 340 : 600;
+  const height = isCompact
+    ? Math.round(chartHeightProp * (chartHeightProp >= 320 ? 0.7 : 0.9))
+    : chartHeightProp;
   const padding = useMemo(
-    () => ({ top: 20, right: y2AxisLabel ? 60 : 20, bottom: 40, left: 60 }),
-    [y2AxisLabel]
+    () =>
+      isCompact
+        ? { top: 18, right: y2AxisLabel ? 54 : 16, bottom: 34, left: 54 }
+        : { top: 20, right: y2AxisLabel ? 60 : 20, bottom: 40, left: 60 },
+    [isCompact, y2AxisLabel]
   );
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
@@ -177,7 +192,7 @@ export function LineChart({
       const idx = xScaleInverse(x);
       return Math.max(0, Math.min(data.length - 1, idx));
     },
-    [data.length, padding.left, padding.right, xScaleInverse]
+    [data.length, padding.left, padding.right, width, xScaleInverse]
   );
 
   const handleMiddleMouseDown = useCallback(
@@ -222,7 +237,7 @@ export function LineChart({
 
       setZoomRange([newStart, newEnd]);
     },
-    [panStart, fullData.length, chartWidth]
+    [panStart, fullData.length, chartWidth, width]
   );
 
   const handleMiddleMouseUp = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -398,10 +413,16 @@ export function LineChart({
     ? Array.from({ length: 5 }, (_, i) => minVal2 + ((maxVal2 - minVal2) / 4) * i)
     : [];
 
-  const xTickCount = Math.min(5, data.length);
+  const xTickCount = Math.min(isCompact ? 3 : 5, data.length);
   const xTicks = Array.from({ length: xTickCount }, (_, i) =>
     Math.floor((i / (xTickCount - 1 || 1)) * (data.length - 1))
   );
+  const axisFontSize = isCompact ? 12 : 10;
+  const markerFontSize = isCompact ? 11 : 9;
+  const axisTextClass = `${isCompact ? 'fill-text' : 'fill-text-dim'} font-mono tabular-nums`;
+  const tooltipWidth = isCompact ? Math.min(220, width - padding.left - 8) : 180;
+  const tooltipHeight = isCompact ? (y2AxisLabel ? 66 : 48) : y2AxisLabel ? 60 : 44;
+  const tooltipFontSize = isCompact ? 11 : 10;
 
   const markerPositions = !markers.length
     ? []
@@ -426,8 +447,10 @@ export function LineChart({
 
   return (
     <div className="relative">
-      <div className="absolute right-2 top-2 z-10 flex gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-end gap-2 sm:absolute sm:right-2 sm:top-2 sm:z-10 sm:mb-0">
         <button
+          type="button"
+          aria-pressed={useLogScale}
           onClick={handleToggleLogScale}
           className={`rounded border px-2 py-1 font-mono text-xs transition-colors ${
             useLogScale
@@ -439,6 +462,7 @@ export function LineChart({
         </button>
         {interactive && isZoomed && (
           <button
+            type="button"
             onClick={handleReset}
             className="hover:border-jade hover:text-jade border-base-border bg-base-elevated text-text rounded border px-2 py-1 font-mono text-xs transition-colors"
           >
@@ -449,6 +473,8 @@ export function LineChart({
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
+        data-compact={isCompact ? 'true' : undefined}
+        aria-label={`${yAxisLabel}${y2AxisLabel ? ` and ${y2AxisLabel}` : ''} chart`}
         className={`explorer-chart-svg w-full select-none ${interactive ? 'cursor-crosshair' : 'cursor-default'}`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
@@ -468,12 +494,12 @@ export function LineChart({
               strokeDasharray="2,2"
             />
             <text
-              x={padding.left - 8}
+              x={padding.left - (isCompact ? 6 : 8)}
               y={yScale(tick)}
               textAnchor="end"
-              className="fill-text-dim font-mono tabular-nums"
+              className={axisTextClass}
               dominantBaseline="middle"
-              fontSize={10}
+              fontSize={axisFontSize}
             >
               {formatAxisValue(tick, isPercent)}
             </text>
@@ -484,33 +510,57 @@ export function LineChart({
           y2Ticks.map((tick, i) => (
             <text
               key={`y2-${i}`}
-              x={width - padding.right + 8}
+              x={width - padding.right + (isCompact ? 6 : 8)}
               y={y2Scale(tick)}
               textAnchor="start"
-              className="fill-aqua font-mono tabular-nums"
+              fill={secondaryColor}
+              className="font-mono tabular-nums"
               dominantBaseline="middle"
-              fontSize={10}
+              fontSize={axisFontSize}
             >
               {formatAxisValue(tick)}
             </text>
           ))}
 
-        {xTicks.map((idx) => (
-          <text
-            key={`x-${idx}`}
-            x={xScale(idx)}
-            y={height - padding.bottom + 20}
-            textAnchor="middle"
-            className="fill-text-dim font-mono tabular-nums"
-            fontSize={10}
-          >
-            {data[idx]?.date || ''}
-          </text>
-        ))}
+        {xTicks.map((idx, tickIdx) => {
+          const edgeAnchor =
+            isCompact && xTicks.length > 1 && (chartType === 'line' || data.length > 3);
+          const isFirst = tickIdx === 0;
+          const isLast = tickIdx === xTicks.length - 1;
+          const textAnchor = edgeAnchor
+            ? isFirst
+              ? 'start'
+              : isLast
+                ? 'end'
+                : 'middle'
+            : 'middle';
+          const xPos =
+            edgeAnchor && chartType === 'bar'
+              ? isFirst
+                ? padding.left
+                : isLast
+                  ? width - padding.right
+                  : xScale(idx)
+              : xScale(idx);
+
+          return (
+            <text
+              key={`x-${idx}`}
+              x={xPos}
+              y={height - padding.bottom + (isCompact ? 18 : 20)}
+              textAnchor={textAnchor}
+              className={axisTextClass}
+              fontSize={axisFontSize}
+              data-testid="line-chart-x-tick"
+            >
+              {data[idx]?.date || ''}
+            </text>
+          );
+        })}
 
         {markerPositions.map((marker) => {
           const markerX = xScale(marker.idx);
-          const labelOnRight = markerX > width - padding.right - 80;
+          const labelOnRight = markerX > width - padding.right - (isCompact ? 72 : 80);
           return (
             <g key={`marker-${marker.label}-${marker.idx}`}>
               <line
@@ -530,7 +580,7 @@ export function LineChart({
                     y={padding.top + 12}
                     textAnchor={labelOnRight ? 'end' : 'start'}
                     className="hover:fill-jade fill-text font-mono underline decoration-dotted"
-                    fontSize={9}
+                    fontSize={markerFontSize}
                     data-testid="line-chart-marker-label"
                   >
                     {marker.label}
@@ -542,7 +592,7 @@ export function LineChart({
                   y={padding.top + 12}
                   textAnchor={labelOnRight ? 'end' : 'start'}
                   className="fill-text font-mono"
-                  fontSize={9}
+                  fontSize={markerFontSize}
                   data-testid="line-chart-marker-label"
                 >
                   {marker.label}
@@ -678,13 +728,17 @@ export function LineChart({
 
         {hoverIndex !== null && hoverIndex < data.length && data[hoverIndex] && (
           <g
-            transform={`translate(${Math.min(xScale(hoverIndex) + 10, width - 200)}, ${padding.top + 10})`}
+            transform={`translate(${
+              isCompact
+                ? Math.max(padding.left, Math.min(xScale(hoverIndex) + 8, width - tooltipWidth - 8))
+                : Math.min(xScale(hoverIndex) + 10, width - 200)
+            }, ${padding.top + 10})`}
           >
             <rect
               x={0}
               y={0}
-              width={180}
-              height={y2AxisLabel ? 60 : 44}
+              width={tooltipWidth}
+              height={tooltipHeight}
               rx={4}
               fill={CHART_TOOLTIP_BG}
               fillOpacity={0.95}
@@ -692,20 +746,30 @@ export function LineChart({
             />
             <text
               x={8}
-              y={16}
+              y={isCompact ? 17 : 16}
               className="fill-text font-mono font-medium tabular-nums"
-              fontSize={10}
+              fontSize={tooltipFontSize}
             >
               {data[hoverIndex]?.date}
             </text>
-            <text x={8} y={32} className="fill-text-dim font-mono tabular-nums" fontSize={10}>
+            <text
+              x={8}
+              y={isCompact ? 35 : 32}
+              className="fill-text-dim font-mono tabular-nums"
+              fontSize={tooltipFontSize}
+            >
               <tspan fill={primaryColor}>{yAxisLabel}: </tspan>
               <tspan className="fill-text-bright">
                 {formatValue(values[hoverIndex], isPercent)}
               </tspan>
             </text>
             {y2AxisLabel && values2.length > 0 && (
-              <text x={8} y={48} className="fill-text-dim font-mono tabular-nums" fontSize={10}>
+              <text
+                x={8}
+                y={isCompact ? 53 : 48}
+                className="fill-text-dim font-mono tabular-nums"
+                fontSize={tooltipFontSize}
+              >
                 <tspan fill={secondaryColor}>{y2AxisLabel}: </tspan>
                 <tspan className="fill-text-bright">{formatValue(values2[hoverIndex])}</tspan>
               </text>

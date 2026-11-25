@@ -1,7 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '../utils/test-utils';
 import { LineChart } from '@/components/ui/line-chart';
 import { CHART_PRIMARY_COLOR, CHART_SECONDARY_COLOR } from '@/lib/chart-colors';
+
+const originalMatchMedia = window.matchMedia;
+
+afterEach(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: originalMatchMedia,
+  });
+});
 
 describe('LineChart', () => {
   it('renders bars when chartType is bar', () => {
@@ -88,5 +98,49 @@ describe('LineChart', () => {
       'stroke',
       CHART_SECONDARY_COLOR
     );
+  });
+
+  it('uses compact viewBox and 3 edge-aligned x ticks on narrow mobile viewports', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === '(max-width: 639px)',
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+
+    const { container } = render(
+      <LineChart
+        yAxisLabel="Primary"
+        y2AxisLabel="Secondary"
+        height={400}
+        data={[
+          { date: '2026-02-20', value: '10', value2: '2' },
+          { date: '2026-02-21', value: '20', value2: '3' },
+          { date: '2026-02-22', value: '30', value2: '4' },
+          { date: '2026-02-23', value: '40', value2: '5' },
+          { date: '2026-02-24', value: '50', value2: '6' },
+        ]}
+      />
+    );
+
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('data-compact', 'true');
+    expect(svg).toHaveAttribute('viewBox', '0 0 340 280');
+
+    const xTicks = screen.getAllByTestId('line-chart-x-tick');
+    expect(xTicks).toHaveLength(3);
+    expect(xTicks.map((node) => node.textContent)).toEqual([
+      '2026-02-20',
+      '2026-02-22',
+      '2026-02-24',
+    ]);
+    expect(xTicks[0]).toHaveAttribute('text-anchor', 'start');
+    expect(xTicks[1]).toHaveAttribute('text-anchor', 'middle');
+    expect(xTicks[2]).toHaveAttribute('text-anchor', 'end');
+    expect(xTicks[0]).toHaveAttribute('font-size', '12');
   });
 });

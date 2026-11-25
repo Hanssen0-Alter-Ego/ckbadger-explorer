@@ -795,6 +795,8 @@ main .shadow-glow, main .shadow-glow-jade, main .shadow-glow-gold { box-shadow: 
 .instrument-search input:not(:focus) { text-overflow: ellipsis; }
 .neon-bar-left::before { background: var(--color-border); box-shadow: none; }
 @media (max-width: 640px) { .home-mini-chart text { font-size: 16px; } }
+.explorer-chart-svg { display: block; }
+@media (max-width: 639px) { .explorer-chart-svg:not([data-compact="true"]) text { font-size: 13px; } }
 
 /* Shared CCC chart empty and error states. */
 .explorer-chart-state {
