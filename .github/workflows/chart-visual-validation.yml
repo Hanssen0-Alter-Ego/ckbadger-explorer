@@ -1,0 +1,33 @@
+name: Verify narrow Explorer charts without deployment
+on:
+  push:
+    branches: [verification/agy-mobile-charts]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      PAGES_BASE: /ckbadger-explorer/
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: corepack pnpm@9.15.0 install --frozen-lockfile
+      - run: |
+          corepack pnpm@9.15.0 --dir frontend build
+          node frontend/scripts/verify-pages.mjs
+      - run: corepack pnpm@9.15.0 --dir frontend exec playwright install --with-deps chromium
+      - run: node frontend/scripts/verify-chart-visual-fixture.cjs
+      - name: Upload chart viewport evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: chart-viewport-evidence
+          path: chart-browser-artifacts
+          if-no-files-found: ignore
