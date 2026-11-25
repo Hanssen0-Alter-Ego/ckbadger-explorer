@@ -13,6 +13,7 @@ import { getChartDescription } from '@/components/charts/chart-calculation-descr
 import type { ChartDescription } from '@/components/charts/chart-calculation-descriptions';
 import { LineChart, LineChartMarker, LineChartType } from '@/components/ui/line-chart';
 import { api, ChartResponse } from '@/lib/api';
+import { CHART_PRIMARY_COLOR, CHART_SECONDARY_COLOR } from '@/lib/chart-colors';
 
 function ChartDataWarning({ show }: { show: boolean }) {
   if (!show) return null;
@@ -87,7 +88,7 @@ export function ChartPage({
               <div className="border-base-border bg-base-surface/50 h-96 animate-pulse rounded border" />
             )}
             {error && (
-              <div className="text-text-dim flex h-96 items-center justify-center">
+              <div className="explorer-chart-state explorer-chart-state-error h-96" role="alert">
                 Failed to load chart data
               </div>
             )}
@@ -105,15 +106,17 @@ export function ChartPage({
                 <div className="mt-6 flex items-center justify-center gap-6 text-sm">
                   <div className="flex items-center gap-2">
                     <span
+                      aria-hidden="true"
+                      style={{ backgroundColor: CHART_PRIMARY_COLOR }}
                       className={
-                        chartType === 'bar' ? 'bg-jade h-3 w-3 rounded' : 'bg-jade h-0.5 w-4'
+                        chartType === 'bar' ? 'h-3 w-3 rounded' : 'h-0.5 w-4'
                       }
                     />
                     <span className="text-text-dim">{data.yAxisLabel}</span>
                   </div>
                   {chartType === 'line' && data.y2AxisLabel && (
                     <div className="flex items-center gap-2">
-                      <span className="bg-rouge h-0.5 w-4" />
+                      <span aria-hidden="true" className="h-0.5 w-4" style={{ backgroundColor: CHART_SECONDARY_COLOR }} />
                       <span className="text-text-dim">{data.y2AxisLabel}</span>
                     </div>
                   )}

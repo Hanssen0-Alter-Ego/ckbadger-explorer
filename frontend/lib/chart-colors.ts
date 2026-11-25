@@ -1,29 +1,30 @@
 // CCC steel/signal family adapted for distinguishable explorer series; labels remain authoritative.
-export const CHART_PRIMARY_COLOR = '#5bcefa'; // Primary cyan signal
-export const CHART_SECONDARY_COLOR = '#7e929e'; // Secondary steel
-export const CHART_TERTIARY_COLOR = '#b7c8d0'; // Tertiary pale steel
+export const CHART_PRIMARY_COLOR = '#5bcefa'; // CCC --signal cyan
+export const CHART_SECONDARY_COLOR = '#d0bd96'; // Warm sand/gold — high contrast vs cyan and panel surface
+export const CHART_TERTIARY_COLOR = '#b7c8d0'; // Pale steel
+export const CHART_POSITIVE_COLOR = '#9eb9ac'; // Muted positive sage
+export const CHART_NEGATIVE_COLOR = '#f5a9b8'; // CCC --error rose
 
 export const CHART_PALETTE = [
   CHART_PRIMARY_COLOR,
   CHART_SECONDARY_COLOR,
   CHART_TERTIARY_COLOR,
-  '#c3b9a6', // gold
-  '#b1bcc3', // lavender
-  '#a69c91', // amber
-  '#8fa59c', // jade-dim
-  '#b18c94', // rouge-dim
-  '#7896a6', // aqua-dim
-  '#a69f8c', // gold-dim
-  '#81939f', // lavender-dim
-  '#8b847b', // amber-dim
+  CHART_POSITIVE_COLOR,
+  CHART_NEGATIVE_COLOR,
+  '#7e929e', // steel
+  '#a69c91', // warm stone
+  '#8fa59c', // sage-dim
+  '#b18c94', // rose-dim
+  '#7896a6', // slate-blue
+  '#a69f8c', // sand-dim
+  '#81939f', // cool-steel
 ] as const;
 
-export const CHART_GRID_COLOR = '#28343a';
-export const CHART_AXIS_COLOR = '#4a5b64';
-export const CHART_TOOLTIP_BG = '#11181c';
-export const CHART_TOOLTIP_BORDER = CHART_TOOLTIP_BG;
-export const CHART_HOVER_BG = '#182228';
-export const CHART_HOVER_COLOR = CHART_HOVER_BG;
+export const CHART_GRID_COLOR = 'var(--chart-grid, #28343a)';
+export const CHART_TOOLTIP_BG = 'var(--chart-tooltip-bg, #070a0c)';
+export const CHART_TOOLTIP_BORDER = 'var(--chart-tooltip-border, #4a5b64)';
+export const CHART_HOVER_COLOR = 'var(--chart-crosshair, #89979f)';
+export const CHART_POINT_RING_COLOR = 'var(--foreground, #e6eef2)';
 
 export function getChartPaletteColor(index: number): string {
   const paletteLength = CHART_PALETTE.length;

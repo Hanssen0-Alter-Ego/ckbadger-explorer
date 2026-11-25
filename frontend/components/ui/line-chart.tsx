@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useId } from 'react';
 import { ChartDataPoint } from '@/lib/api';
 import {
   CHART_PRIMARY_COLOR,
@@ -9,6 +9,7 @@ import {
   CHART_HOVER_COLOR,
   CHART_TOOLTIP_BG,
   CHART_TOOLTIP_BORDER,
+  CHART_POINT_RING_COLOR,
 } from '@/lib/chart-colors';
 
 export type LineChartType = 'line' | 'bar';
@@ -340,6 +341,7 @@ export function LineChart({
     [interactive, getMouseIndex, zoomRange, fullData.length, data.length]
   );
 
+  const areaGradientId = `chart-area-${useId()}`;
   const pathD = useMemo(() => {
     if (chartType === 'bar' || !data.length) return '';
     const parts: string[] = new Array(data.length);
@@ -388,7 +390,7 @@ export function LineChart({
 
   if (!fullData.length) {
     return (
-      <div className="text-text-dim flex h-64 items-center justify-center">No data available</div>
+      <div className="explorer-chart-state h-64" role="status">No data available</div>
     );
   }
 
@@ -447,7 +449,7 @@ export function LineChart({
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
-        className={`w-full select-none ${interactive ? 'cursor-crosshair' : 'cursor-default'}`}
+        className={`explorer-chart-svg w-full select-none ${interactive ? 'cursor-crosshair' : 'cursor-default'}`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
@@ -550,6 +552,22 @@ export function LineChart({
           );
         })}
 
+        {chartType === 'line' && !path2D && data.length > 1 && (
+          <>
+            <defs>
+              <linearGradient id={areaGradientId} x1="0" x2="0" y1="0" y2="100%">
+                <stop stopColor={primaryColor} stopOpacity={0.16} />
+                <stop offset="100%" stopColor={primaryColor} stopOpacity={0.025} />
+              </linearGradient>
+            </defs>
+            <path
+              d={`${pathD} L ${xScale(data.length - 1)} ${height - padding.bottom} L ${xScale(0)} ${height - padding.bottom} Z`}
+              fill={`url(#${areaGradientId})`}
+              pointerEvents="none"
+              aria-hidden="true"
+            />
+          </>
+        )}
         {chartType === 'line' && (
           <path
             d={pathD}
@@ -627,7 +645,7 @@ export function LineChart({
                 cy={yScale(values[hoverIndex])}
                 r={4}
                 fill={primaryColor}
-                stroke="#fff"
+                stroke={CHART_POINT_RING_COLOR}
                 strokeWidth={2}
               />
             )}
@@ -651,7 +669,7 @@ export function LineChart({
                 cy={y2Scale(values2[hoverIndex])}
                 r={4}
                 fill={secondaryColor}
-                stroke="#fff"
+                stroke={CHART_POINT_RING_COLOR}
                 strokeWidth={2}
               />
             )}

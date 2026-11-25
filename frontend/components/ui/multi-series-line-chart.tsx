@@ -315,7 +315,7 @@ export function MultiSeriesLineChart({
           >
             <span
               className="h-3 w-3 rounded"
-              style={{ backgroundColor: visibleSeries.has(s.key) ? s.color : CHART_HOVER_COLOR }}
+              style={{ backgroundColor: visibleSeries.has(s.key) ? s.color : 'var(--color-elevated)' }}
             />
             {s.label}
           </button>
