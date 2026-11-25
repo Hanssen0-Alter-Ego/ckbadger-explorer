@@ -12,6 +12,30 @@ import {
   proposalKey,
 } from "@/lib/ordered-pipeline";
 
+const glyphs = [
+  ["pending", "Pending", "border border-interactive"],
+  ["proposed", "Proposal", "rounded-full border border-gold bg-gold/[.65]"],
+  ["committed", "Committed", "border border-interactive bg-interactive/45"],
+  ["cellbase", "Cellbase", "rotate-45 border border-gold bg-gold"],
+] as const;
+type GlyphKind = (typeof glyphs)[number][0];
+
+function PipelineGlyph({
+  kind,
+  className,
+}: {
+  kind: GlyphKind;
+  className: string;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      data-pipeline-glyph={kind}
+      className={`pointer-events-none block shrink-0 ${glyphs.find(([id]) => id === kind)?.[2]} ${className}`}
+    />
+  );
+}
+
 type Selection = {
   key: string;
   hash?: string | null;
@@ -116,7 +140,11 @@ export function OrderedPipeline({
       window.removeEventListener("resize", measure);
     };
   }, [active, blocks.data, proposals.data]);
-  function mark(s: Selection, extra: Record<string, string> = {}) {
+  function mark(
+    s: Selection,
+    kind: GlyphKind,
+    extra: Record<string, string> = {},
+  ) {
     const on = active?.key === s.key;
     return (
       <button
@@ -131,8 +159,17 @@ export function OrderedPipeline({
         onFocus={() => setSelected(s)}
         onBlur={() => setSelected(null)}
         onClick={() => setPinned(pinned?.key === s.key ? null : s)}
-        className={`h-6 w-6 sm:h-[15px] sm:w-[15px] border transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive ${on ? "border-interactive bg-interactive" : "border-interactive/50 bg-interactive/35 hover:bg-interactive/60"}`}
-      />
+        className={`grid h-6 w-6 place-items-center transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive sm:h-[15px] sm:w-[15px] ${on ? "bg-interactive/25" : "hover:bg-interactive/[.15]"}`}
+      >
+        <PipelineGlyph
+          kind={kind}
+          className={
+            kind === "cellbase" || kind === "proposed"
+              ? "h-3 w-3 sm:h-2.5 sm:w-2.5"
+              : "h-[18px] w-[18px] sm:h-[13px] sm:w-[13px]"
+          }
+        />
+      </button>
     );
   }
   function state(loading: boolean, error: boolean, count: number) {
@@ -187,11 +224,14 @@ export function OrderedPipeline({
             <div aria-hidden="true" className="my-2 h-6 sm:h-2" />
             <div className="grid min-h-[102px] sm:min-h-[66px] grid-cols-[repeat(5,24px)] sm:grid-cols-[repeat(5,15px)] content-start gap-[2px]">
               {pending.slice(0, PIPELINE_VISIBLE).map((t) =>
-                mark({
-                  key: `pool:${t.txHash}`,
-                  hash: t.txHash,
-                  text: `Pending ${t.txHash}, ${t.size} bytes, fee ${t.fee} sh, cycles ${t.cycles}`,
-                }),
+                mark(
+                  {
+                    key: `pool:${t.txHash}`,
+                    hash: t.txHash,
+                    text: `Pending ${t.txHash}, ${t.size} bytes, fee ${t.fee} sh, cycles ${t.cycles}`,
+                  },
+                  "pending",
+                ),
               )}
             </div>
             <p className="mt-2 text-xs text-text-dim">
@@ -215,6 +255,7 @@ export function OrderedPipeline({
                     proposal: p,
                     text: `Proposal ${p.proposalId}, proposed in block ${p.proposedAtBlock}, size ${p.size ?? "unknown"} bytes, fee ${p.fee ?? "unknown"} sh, cycles ${p.cycles ?? "unknown"}`,
                   },
+                  "proposed",
                   { "data-proposal-source": proposalKey(p) },
                 ),
               )}
@@ -290,17 +331,22 @@ export function OrderedPipeline({
                           text: `Proposal ${p.proposalId}`,
                         })
                       }
-                      className="relative h-6 w-6 shrink-0 after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:border after:border-interactive after:bg-interactive/50 sm:h-2 sm:w-2"
-                    />
+                      className="grid h-6 w-6 shrink-0 place-items-center focus-visible:outline focus-visible:outline-interactive sm:h-2 sm:w-2"
+                    >
+                      <PipelineGlyph kind="proposed" className="h-2 w-2" />
+                    </button>
                   ))}
                 </div>
                 <div className="grid min-h-[102px] sm:min-h-[66px] grid-cols-[repeat(5,24px)] sm:grid-cols-[repeat(5,15px)] content-start gap-[2px]">
                   {txs.slice(0, 20).map((t) =>
-                    mark({
-                      key: `block:${b.number}:${t.hash}`,
-                      hash: t.hash,
-                      text: `${t.isCellbase ? "Cellbase" : "Transaction"} ${t.index}, ${t.hash}, ${t.txSize ?? "unknown"} bytes, fee ${t.fee} sh, cycles ${t.cycles ?? "unknown"}`,
-                    }),
+                    mark(
+                      {
+                        key: `block:${b.number}:${t.hash}`,
+                        hash: t.hash,
+                        text: `${t.isCellbase ? "Cellbase" : "Transaction"} ${t.index}, ${t.hash}, ${t.txSize ?? "unknown"} bytes, fee ${t.fee} sh, cycles ${t.cycles ?? "unknown"}`,
+                      },
+                      t.isCellbase ? "cellbase" : "committed",
+                    ),
                   )}
                 </div>
                 <p className="mt-2 text-xs text-text-dim">
@@ -323,6 +369,17 @@ export function OrderedPipeline({
           )}
         </div>
       </div>
+      <ul
+        aria-label="Transaction symbols"
+        className="flex flex-wrap gap-x-4 gap-y-1 pb-2 text-xs text-text-dim"
+      >
+        {glyphs.map(([kind, label]) => (
+          <li className="flex items-center gap-1.5" key={kind}>
+            <PipelineGlyph kind={kind} className="h-2 w-2" />
+            {label}
+          </li>
+        ))}
+      </ul>
       <div
         aria-live="polite"
         data-testid="pipeline-selection"

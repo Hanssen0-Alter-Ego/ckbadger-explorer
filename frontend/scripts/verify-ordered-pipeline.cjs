@@ -37,6 +37,45 @@ const { install } = require('./pipeline-browser-fixtures.cjs');
         const ids = await tiles.evaluateAll((es) => es.map((e) => e.dataset.pipelineTile));
         assert.ok(ids[0].endsWith('2710'));
         assert.ok(ids[19].endsWith('2723'));
+        const cellbase = tiles.first();
+        const diamond = cellbase.locator('[data-pipeline-glyph="cellbase"]');
+        assert.match(await cellbase.getAttribute("aria-label"), /^Cellbase 0,/);
+        assert.notEqual(
+          await diamond.evaluate((el) => getComputedStyle(el).transform),
+          "none",
+        );
+        const committed = tiles
+          .nth(1)
+          .locator('[data-pipeline-glyph="committed"]');
+        assert.equal(await committed.count(), 1);
+        assert.equal(
+          await committed.evaluate((el) => getComputedStyle(el).transform),
+          "none",
+        );
+        const dot = source.locator('[data-pipeline-glyph="proposed"]');
+        assert.equal(
+          await dot.evaluate((el) => getComputedStyle(el).borderRadius),
+          "9999px",
+        );
+        const pending = root
+          .locator(
+            '[data-pipeline-tile^="pool:"] [data-pipeline-glyph="pending"]',
+          )
+          .first();
+        assert.equal(
+          await pending.evaluate((el) => getComputedStyle(el).backgroundColor),
+          "rgba(0, 0, 0, 0)",
+        );
+        const legend = root.getByRole("list", { name: "Transaction symbols" });
+        for (const label of ["Pending", "Proposal", "Committed", "Cellbase"])
+          assert.equal(
+            await legend.getByText(label, { exact: true }).count(),
+            1,
+          );
+        assert.equal(
+          await root.getByText("IDs not supplied", { exact: true }).count(),
+          1,
+        );
         const rects = await tiles.evaluateAll((es) =>
           es.map((e) => {
             let r = e.getBoundingClientRect();
