@@ -71,7 +71,16 @@ exports.install = async (page, mode = 'populated') => {
         totalPendingCount: 32,
         totalProposedCount: 3,
       };
-    else if (p.endsWith('/blocks'))
+    else if (p.endsWith('/proposals')) {
+      const block = blocks.find((b) => p.endsWith(`/${b.hash}/proposals`));
+      const index = block ? { 100: 103, 99: 101, 98: 104 }[block.number] : undefined;
+      data = index && mode !== 'empty' ? [{
+        proposalIndex: 0,
+        proposalId: proposal(index, block.number).proposalId,
+        committedTxHash: index === 104 ? hash(index) : null,
+        committedBlockNumber: index === 104 ? 100 : null,
+      }] : [];
+    } else if (p.endsWith('/blocks'))
       data = {
         data: mode === 'empty' ? [] : blocks,
         total: 3,

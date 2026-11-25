@@ -6,6 +6,7 @@ import { api, Block, PendingProposal } from "@/lib/api";
 import {
   fullHash,
   matchedProposal,
+  nextBlockCandidates,
   orderCommitted,
   orderProposals,
   PIPELINE_VISIBLE,
@@ -14,7 +15,8 @@ import {
 
 const glyphs = [
   ["pending", "Pending", "border border-interactive"],
-  ["proposed", "Proposal", "rounded-full border border-gold bg-gold/[.65]"],
+  ["proposed", "Proposed", "border border-positive bg-positive/45"],
+  ["proposal-marker", "On-chain proposal", "rounded-full border border-positive bg-positive/70"],
   ["committed", "Committed", "border border-interactive bg-interactive/45"],
   ["cellbase", "Cellbase", "rotate-45 border border-gold bg-gold"],
 ] as const;
@@ -87,7 +89,23 @@ export function OrderedPipeline({
       staleTime: 5000,
     })),
   });
+  const proposalQueries = useQueries({
+    queries: chain.map((block) => ({
+      queryKey: ["pipeline-block-proposals", block.hash],
+      queryFn: () => api.getBlockProposals(block.hash),
+      enabled: block.proposalsCount > 0 || block.unclesCount > 0,
+      staleTime: 15000,
+    })),
+  });
   const proposed = orderProposals(proposals.data?.proposals ?? []);
+  const nextCount = prediction.data?.pendingBlocks[0]?.transactionCount;
+  const candidates =
+    proposals.data && nextCount !== undefined
+      ? nextBlockCandidates(proposed, proposals.data.tipBlockNumber, nextCount)
+      : [];
+  const visibleMarkers = proposalQueries
+    .map((query) => query.dataUpdatedAt)
+    .join(":");
   const proposedHashes = new Set(proposed.map((p) => p.fullTxHash));
   const pending = [...(pool.data ?? [])]
     .filter((t) => t.status !== "proposed" && !proposedHashes.has(t.txHash))
@@ -139,7 +157,7 @@ export function OrderedPipeline({
       resize.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [active, blocks.data, proposals.data]);
+  }, [active, blocks.data, proposals.data, visibleMarkers]);
   function mark(
     s: Selection,
     kind: GlyphKind,
@@ -164,7 +182,7 @@ export function OrderedPipeline({
         <PipelineGlyph
           kind={kind}
           className={
-            kind === "cellbase" || kind === "proposed"
+            kind === "cellbase"
               ? "h-3 w-3 sm:h-2.5 sm:w-2.5"
               : "h-[18px] w-[18px] sm:h-[13px] sm:w-[13px]"
           }
@@ -270,20 +288,33 @@ export function OrderedPipeline({
           <section className="h-[240px] w-[156px] sm:h-[180px] sm:w-[132px] shrink-0 border border-base-border bg-base-surface p-3">
             <h3 className="whitespace-nowrap font-mono text-xs">Next (est.)</h3>
             <div aria-hidden="true" className="my-2 h-6 sm:h-2" />
-            <p className="min-h-[102px] sm:min-h-[66px] text-sm">
-              {prediction.data?.pendingBlocks[0]?.transactionCount ?? "—"}{" "}
-              transactions
-            </p>
+            <div className="grid min-h-[102px] sm:min-h-[66px] grid-cols-[repeat(5,24px)] sm:grid-cols-[repeat(5,15px)] content-start gap-[2px]">
+              {candidates.slice(0, PIPELINE_VISIBLE).map((p) =>
+                mark(
+                  {
+                    key: `next:${p.fullTxHash}`,
+                    hash: p.fullTxHash,
+                    text: `Next candidate ${p.fullTxHash}, proposed in block ${p.proposedAtBlock}, size ${p.size ?? "unknown"} bytes, fee ${p.fee ?? "unknown"} sh, fee rate ${p.feeRate ?? "unknown"} sh/B, cycles ${p.cycles ?? "unknown"}`,
+                  },
+                  "proposed",
+                ),
+              )}
+            </div>
             <p className="mt-2 text-xs text-text-dim">
-              {prediction.isError ? "Unavailable" : "IDs not supplied"}
+              {prediction.isError || proposals.isError
+                ? "Unavailable"
+                : nextCount === undefined || !proposals.data
+                  ? "No estimate"
+                  : `${nextCount} estimated · ${Math.min(candidates.length, PIPELINE_VISIBLE)} shown`}
             </p>
           </section>
           {chain.map((b, i) => {
             const q = txQueries[i],
               txs = orderCommitted(q.data?.data ?? []),
-              dots = proposed
-                .filter((p) => p.proposedAtBlock === b.number)
-                .slice(0, 5);
+              pq = proposalQueries[i],
+              markers = [...(pq.data ?? [])].sort(
+                (a, b) => a.proposalIndex - b.proposalIndex,
+              );
             const total = q.data?.total ?? b.transactionsCount;
             return (
               <section
@@ -300,42 +331,51 @@ export function OrderedPipeline({
                   </Link>
                 </h3>
                 <div className="my-2 flex h-6 gap-0.5 sm:h-2">
-                  {dots.map((p) => (
-                    <button
-                      key={proposalKey(p)}
-                      data-proposal-target={proposalKey(p)}
-                      aria-label={`Proposal marker ${p.proposalId} in block ${b.number}`}
-                      onFocus={() =>
-                        setSelected({
-                          key: proposalKey(p),
-                          hash: p.fullTxHash,
-                          proposal: p,
-                          text: `Proposal ${p.proposalId}`,
-                        })
-                      }
-                      onMouseEnter={() =>
-                        setSelected({
-                          key: proposalKey(p),
-                          hash: p.fullTxHash,
-                          proposal: p,
-                          text: `Proposal ${p.proposalId}`,
-                        })
-                      }
-                      onMouseLeave={() => setSelected(null)}
-                      onBlur={() => setSelected(null)}
-                      onClick={() =>
-                        setPinned({
-                          key: proposalKey(p),
-                          hash: p.fullTxHash,
-                          proposal: p,
-                          text: `Proposal ${p.proposalId}`,
-                        })
-                      }
-                      className="grid h-6 w-6 shrink-0 place-items-center focus-visible:outline focus-visible:outline-interactive sm:h-2 sm:w-2"
-                    >
-                      <PipelineGlyph kind="proposed" className="h-2 w-2" />
-                    </button>
-                  ))}
+                  {markers.slice(0, 5).map((marker) => {
+                    const live = proposed.find(
+                      (p) =>
+                        p.proposedAtBlock === b.number &&
+                        p.proposedAtIndex === marker.proposalIndex &&
+                        p.proposalId === marker.proposalId &&
+                        (!marker.committedTxHash ||
+                          marker.committedTxHash === p.fullTxHash),
+                    );
+                    const selection = {
+                      key: live
+                        ? proposalKey(live)
+                        : `proposal:${b.hash}:${marker.proposalIndex}`,
+                      hash: marker.committedTxHash ?? live?.fullTxHash,
+                      proposal: live,
+                      text: `Proposal ${marker.proposalId} in block ${b.number}${
+                        marker.committedBlockNumber == null
+                          ? ""
+                          : `, committed in block ${marker.committedBlockNumber}`
+                      }`,
+                    };
+                    return (
+                      <button
+                        key={selection.key}
+                        type="button"
+                        data-proposal-target={live ? selection.key : undefined}
+                        aria-label={selection.text}
+                        aria-pressed={pinned?.key === selection.key}
+                        onFocus={() => setSelected(selection)}
+                        onMouseEnter={() => setSelected(selection)}
+                        onMouseLeave={() => setSelected(null)}
+                        onBlur={() => setSelected(null)}
+                        onClick={() => setPinned(pinned?.key === selection.key ? null : selection)}
+                        className="grid h-6 w-6 shrink-0 place-items-center focus-visible:outline focus-visible:outline-interactive sm:h-2 sm:w-2"
+                      >
+                        <PipelineGlyph kind="proposal-marker" className="h-2 w-2" />
+                      </button>
+                    );
+                  })}
+                  {markers.length > 5 && (
+                    <span className="self-center text-[10px] leading-none text-text-dim">+{markers.length - 5}</span>
+                  )}
+                  {pq.isError && (
+                    <span className="self-center text-[10px] leading-none text-text-dim">Proposals unavailable</span>
+                  )}
                 </div>
                 <div className="grid min-h-[102px] sm:min-h-[66px] grid-cols-[repeat(5,24px)] sm:grid-cols-[repeat(5,15px)] content-start gap-[2px]">
                   {txs.slice(0, 20).map((t) =>

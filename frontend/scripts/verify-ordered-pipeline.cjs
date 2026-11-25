@@ -52,11 +52,24 @@ const { install } = require('./pipeline-browser-fixtures.cjs');
           await committed.evaluate((el) => getComputedStyle(el).transform),
           "none",
         );
-        const dot = source.locator('[data-pipeline-glyph="proposed"]');
-        assert.equal(
-          await dot.evaluate((el) => getComputedStyle(el).borderRadius),
-          "9999px",
+        const proposedSquare = source.locator('[data-pipeline-glyph="proposed"]');
+        assert.deepEqual(
+          await proposedSquare.evaluate((el) => {
+            const css = getComputedStyle(el);
+            return [css.borderRadius, css.backgroundColor];
+          }),
+          ["0px", "rgba(158, 185, 172, 0.45)"],
         );
+        const historical = root.locator('[data-pipeline-block="98"]')
+          .getByRole("button", { name: /committed in block 100/ });
+        await historical.waitFor();
+        assert.equal(await historical.getAttribute('data-proposal-target'), null);
+        assert.equal(await historical.locator('[data-pipeline-glyph="proposal-marker"]')
+          .evaluate((el) => getComputedStyle(el).borderRadius), "9999px");
+        await historical.focus();
+        assert.ok((await root.getByRole('link', {name: 'Open transaction'})
+          .getAttribute('href')).endsWith('68'));
+        await p.keyboard.press('Escape');
         const pending = root
           .locator(
             '[data-pipeline-tile^="pool:"] [data-pipeline-glyph="pending"]',
@@ -67,15 +80,19 @@ const { install } = require('./pipeline-browser-fixtures.cjs');
           "rgba(0, 0, 0, 0)",
         );
         const legend = root.getByRole("list", { name: "Transaction symbols" });
-        for (const label of ["Pending", "Proposal", "Committed", "Cellbase"])
+        for (const label of ["Pending", "Proposed", "On-chain proposal", "Committed", "Cellbase"])
           assert.equal(
             await legend.getByText(label, { exact: true }).count(),
             1,
           );
-        assert.equal(
-          await root.getByText("IDs not supplied", { exact: true }).count(),
-          1,
-        );
+        const candidate = root.locator('[data-pipeline-tile^="next:"]');
+        assert.equal(await candidate.count(), 1);
+        await candidate.focus();
+        assert.match(await candidate.getAttribute('aria-label'), /Next candidate .* fee rate 2.5 sh\/B/);
+        assert.ok((await root.getByRole('link', {name: 'Open transaction'})
+          .getAttribute('href')).endsWith('65'));
+        assert.equal(await root.getByText('7 estimated · 1 shown').count(), 1);
+        await p.keyboard.press('Escape');
         const rects = await tiles.evaluateAll((es) =>
           es.map((e) => {
             let r = e.getBoundingClientRect();

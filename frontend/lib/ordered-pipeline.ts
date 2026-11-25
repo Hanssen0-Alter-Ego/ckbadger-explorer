@@ -19,3 +19,25 @@ export function proposalKey(p: PendingProposal) {
 export function matchedProposal(p: PendingProposal, visibleBlocks: number[]) {
   return fullHash(p.fullTxHash) && visibleBlocks.includes(p.proposedAtBlock);
 }
+
+// The Explorer is configured for CKB mainnet, whose proposal window is [2, 10].
+export function nextBlockCandidates(
+  proposals: PendingProposal[],
+  tip: number,
+  estimateCount: number,
+) {
+  const nextHeight = tip + 1;
+  const eligible = orderProposals(proposals).filter((p) => {
+    const distance = nextHeight - p.proposedAtBlock;
+    return distance >= 2 && distance <= 10;
+  });
+  eligible.sort((a, b) => (b.feeRate ?? 0) - (a.feeRate ?? 0));
+  const known = new Set<string>();
+  return eligible.filter((p) => {
+    if (!fullHash(p.fullTxHash)) return false;
+    const hash = p.fullTxHash.toLowerCase();
+    if (known.has(hash)) return false;
+    known.add(hash);
+    return true;
+  }).slice(0, estimateCount);
+}
