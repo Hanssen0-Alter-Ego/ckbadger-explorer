@@ -82,6 +82,7 @@ const { install } = require('./pipeline-browser-fixtures.cjs');
         assert.ok((await root.getByRole('link', {name: 'Open transaction'})
           .getAttribute('href')).endsWith('2711'));
         await p.keyboard.press('Escape');
+        await p.mouse.move(1, 1);
         await historicalTx.focus();
         await historical.and(root.locator('[data-pipeline-linked="true"]')).waitFor();
         await p.keyboard.press('Escape');

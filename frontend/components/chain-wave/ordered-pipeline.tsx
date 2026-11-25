@@ -134,9 +134,10 @@ export function OrderedPipeline({
   const pending = [...(pool.data ?? [])]
     .filter((t) => t.status !== "proposed" && !proposedHashes.has(t.txHash))
     .sort((a, b) => a.txHash.localeCompare(b.txHash));
-  const [selected, setSelected] = useState<Selection | null>(null);
+  const [hovered, setHovered] = useState<Selection | null>(null);
+  const [focused, setFocused] = useState<Selection | null>(null);
   const [pinned, setPinned] = useState<Selection | null>(null);
-  const active = pinned ?? selected;
+  const active = pinned ?? hovered ?? focused;
   const track = useRef<HTMLDivElement>(null);
   const [connector, setConnector] = useState<{
     points: number[];
@@ -212,10 +213,10 @@ export function OrderedPipeline({
         {...extra}
         aria-label={s.text}
         aria-pressed={pinned?.key === s.key}
-        onMouseEnter={() => setSelected(s)}
-        onMouseLeave={() => setSelected(null)}
-        onFocus={() => setSelected(s)}
-        onBlur={() => setSelected(null)}
+        onMouseEnter={() => setHovered(s)}
+        onMouseLeave={() => setHovered(null)}
+        onFocus={() => setFocused(s)}
+        onBlur={() => setFocused(null)}
         onClick={() => setPinned(pinned?.key === s.key ? null : s)}
         className={`grid h-6 w-6 place-items-center transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive sm:h-[15px] sm:w-[15px] ${isLinked(s.key) ? "bg-interactive/40 ring-1 ring-interactive" : on ? "bg-interactive/25" : "hover:bg-interactive/[.15]"}`}
       >
@@ -246,7 +247,8 @@ export function OrderedPipeline({
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           setPinned(null);
-          setSelected(null);
+          setHovered(null);
+          setFocused(null);
         }
       }}
     >
@@ -404,10 +406,10 @@ export function OrderedPipeline({
                         }
                         aria-label={selection.text}
                         aria-pressed={pinned?.key === selection.key}
-                        onFocus={() => setSelected(selection)}
-                        onMouseEnter={() => setSelected(selection)}
-                        onMouseLeave={() => setSelected(null)}
-                        onBlur={() => setSelected(null)}
+                        onFocus={() => setFocused(selection)}
+                        onMouseEnter={() => setHovered(selection)}
+                        onMouseLeave={() => setHovered(null)}
+                        onBlur={() => setFocused(null)}
                         onClick={() => setPinned(pinned?.key === selection.key ? null : selection)}
                         className="grid h-6 w-6 shrink-0 place-items-center focus-visible:outline focus-visible:outline-interactive sm:h-2 sm:w-2"
                       >
@@ -491,7 +493,8 @@ export function OrderedPipeline({
               className="ml-3 underline"
               onClick={() => {
                 setPinned(null);
-                setSelected(null);
+                setHovered(null);
+                setFocused(null);
               }}
             >
               Clear selection
